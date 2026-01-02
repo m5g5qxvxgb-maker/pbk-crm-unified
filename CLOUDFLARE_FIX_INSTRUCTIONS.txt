@@ -1,0 +1,74 @@
+🔥 СРОЧНО: CLOUDFLARE БЛОКИРУЕТ ДОСТУП К САЙТУ
+
+═══════════════════════════════════════════════════
+
+❌ ПРОБЛЕМА:
+https://crmpbk.appp2p.uk возвращает ошибку 403 Forbidden
+Cloudflare Firewall блокирует все запросы
+
+═══════════════════════════════════════════════════
+
+✅ РЕШЕНИЕ (ШАГИ):
+
+1️⃣ ЗАЙТИ В CLOUDFLARE
+   → https://dash.cloudflare.com
+   → Выбрать домен: appp2p.uk
+
+2️⃣ ОТКЛЮЧИТЬ "UNDER ATTACK MODE"
+   → Security → Settings
+   → Security Level → Найти "Under Attack Mode"
+   → Переключить на "Medium" или "Low"
+
+3️⃣ ПРОВЕРИТЬ FIREWALL RULES
+   → Security → WAF → Firewall Rules
+   → Если есть правила блокирующие crmpbk - удалить
+   
+4️⃣ СОЗДАТЬ ПРАВИЛО BYPASS (опционально)
+   → Firewall Rules → Create a Firewall Rule
+   → Название: "CRM Bypass"
+   → Field: Hostname
+   → Operator: equals
+   → Value: crmpbk.appp2p.uk
+   → Then: Allow
+
+5️⃣ ОЧИСТИТЬ КЭШ
+   → Caching → Configuration
+   → Purge Everything
+   → Подтвердить
+
+6️⃣ ПРОВЕРИТЬ SSL MODE
+   → SSL/TLS → Overview
+   → Должно быть: "Full" или "Full (Strict)"
+
+═══════════════════════════════════════════════════
+
+⏰ ПОДОЖДИТЕ 2-3 МИНУТЫ после изменений
+
+═══════════════════════════════════════════════════
+
+🧪 ТЕСТИРОВАНИЕ:
+
+После изменений проверьте:
+1. https://crmpbk.appp2p.uk
+2. Должна открыться страница логина CRM
+
+═══════════════════════════════════════════════════
+
+💡 АЛЬТЕРНАТИВНЫЙ ДОСТУП (УЖЕ РАБОТАЕТ):
+
+Пока Cloudflare не исправлен, используйте:
+
+1. Tailscale VPN:
+   http://100.91.124.46:3333
+   
+2. Локальная сеть:
+   http://192.168.1.96:3333
+
+═══════════════════════════════════════════════════
+
+❓ ЕСЛИ НЕ ПОМОГЛО:
+
+Напишите в Telegram: @Pbkautomatization_bot
+Или обратитесь к администратору Cloudflare
+
+═══════════════════════════════════════════════════

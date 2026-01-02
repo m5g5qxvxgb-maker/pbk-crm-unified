@@ -1,0 +1,23 @@
+{
+  "name": "pbk-crm-copilot-agent",
+  "version": "1.0.0",
+  "description": "Copilot AI Agent for PBK CRM via Telegram",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "axios": "^1.6.0",
+    "pg": "^8.11.0",
+    "dotenv": "^16.3.1",
+    "openai": "^4.20.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
+  }
+}

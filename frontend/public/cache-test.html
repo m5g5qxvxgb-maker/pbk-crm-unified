@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка версии CRM</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #ea580c;
+            margin-top: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #ea580c;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 10px 10px 10px 0;
+            border: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #c2410c;
+        }
+        .steps {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ea580c;
+        }
+        .steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .steps li {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔄 Очистка кэша браузера</h1>
+        <p>Версия сборки: <strong>22.12.2025 15:55</strong></p>
+        <div class="status warning">
+            ⚠️ Если иконка всё ещё большая - кэш не очищен
+        </div>
+        
+        <h2>Выберите способ:</h2>
+        
+        <div class="steps">
+            <h3>Способ 1: Hard Refresh (быстрый)</h3>
+            <ol>
+                <li>Откройте страницу логина</li>
+                <li>Нажмите:
+                    <div class="code">
+Windows/Linux: Ctrl + Shift + R<br>
+Mac: Cmd + Shift + R
+                    </div>
+                </li>
+            </ol>
+        </div>
+        
+        <div class="steps">
+            <h3>Способ 2: Режим инкогнито (надёжный)</h3>
+            <ol>
+                <li>Откройте новое окно в режиме инкогнито:
+                    <div class="code">
+Chrome/Edge: Ctrl + Shift + N<br>
+Firefox: Ctrl + Shift + P
+                    </div>
+                </li>
+                <li>Откройте: <code>http://192.168.1.96:3333/login</code></li>
+            </ol>
+        </div>
+        
+        <div class="steps">
+            <h3>Способ 3: DevTools (для разработчиков)</h3>
+            <ol>
+                <li>Нажмите F12 (откроется DevTools)</li>
+                <li>Перейдите на вкладку <strong>Network</strong></li>
+                <li>Поставьте галочку <strong>Disable cache</strong></li>
+                <li>Обновите страницу (F5)</li>
+            </ol>
+        </div>
+        
+        <div class="steps">
+            <h3>Способ 4: Полная очистка кэша</h3>
+            <ol>
+                <li>Chrome: Настройки → Конфиденциальность → Очистить данные браузера</li>
+                <li>Выберите "Изображения и файлы в кэше"</li>
+                <li>Нажмите "Удалить данные"</li>
+            </ol>
+        </div>
+        
+        <a href="http://192.168.1.96:3333/login" class="button">Открыть страницу логина</a>
+        <button onclick="location.reload(true)" class="button">Обновить эту страницу</button>
+    </div>
+    
+    <div class="card">
+        <h2>✅ Что должно быть после очистки кэша:</h2>
+        <div class="status success">
+            ✓ Иконка здания меньше на мобильных устройствах
+        </div>
+        <div class="status success">
+            ✓ Иконка 32x32px на телефонах, 40x40px на десктопе
+        </div>
+        <div class="status success">
+            ✓ Адаптивный размер текста "PBK Construction"
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>🐛 Если ничего не помогло:</h2>
+        <p>Напишите мне текущий размер иконки и я проверю что ещё можно сделать.</p>
+        <p>Или сделайте скриншот страницы логина.</p>
+    </div>
+</body>
+</html>

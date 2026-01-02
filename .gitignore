@@ -1,0 +1,56 @@
+# Ignore dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore env files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore build outputs
+frontend/.next/
+frontend/out/
+frontend/build/
+backend/dist/
+backend/build/
+
+# Ignore uploads
+uploads/
+temp/
+/var/pbk-crm/
+
+# Ignore database
+*.sql.backup
+*.dump
+
+# Ignore cache
+.cache/
+*.cache
+
+# Ignore coverage
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose.override.yml
+
+# Copilot logs
+copilot-agent/*.log
+backend/src/utils/logs/
