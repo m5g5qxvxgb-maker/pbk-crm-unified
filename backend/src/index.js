@@ -87,9 +87,9 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.API_PORT || 5001;
+const PORT = process.env.PORT || process.env.API_PORT || 5001;
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 PBK CRM Backend running on port ${PORT}`);
 });
 
