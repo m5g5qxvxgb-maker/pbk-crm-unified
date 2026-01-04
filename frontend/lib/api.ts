@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,8 +22,8 @@ export const getApiUrl = (path: string) => {
   // Remove /api prefix if path already includes it
   const cleanPath = path.startsWith('/api') ? path : `/api${path}`;
   // Return full URL without double /api
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
-  return `${baseUrl}${cleanPath}`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
 };
 
 // Auth API - updated

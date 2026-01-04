@@ -28,8 +28,8 @@ export default function LoginPage() {
 
     try {
       console.log('Making direct API call...');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
-      console.log('Using API URL:', API_URL);
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+      console.log('Using API URL:', API_URL || 'relative path');
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
