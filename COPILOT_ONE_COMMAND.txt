@@ -1,0 +1,49 @@
+═══════════════════════════════════════════════════════════
+   🤖 ПРОМПТ ДЛЯ COPILOT - ОДНА КОМАНДА
+═══════════════════════════════════════════════════════════
+
+Скопируй и отправь это Copilot на сервере:
+
+═══════════════════════════════════════════════════════════
+
+Привет! Разверни production CRM систему из GitHub одной командой.
+
+Репозиторий: https://github.com/m5g5qxvxgb-maker/pbk-crm-unified
+
+Что делать:
+1. Установи Docker и Docker Compose (если нет)
+2. Выполни эту команду:
+
+```bash
+curl -fsSL https://get.docker.com | sh && \
+apt install -y docker-compose git && \
+cd /opt && \
+git clone https://github.com/m5g5qxvxgb-maker/pbk-crm-unified.git && \
+cd pbk-crm-unified && \
+cp .env.example .env && \
+sed -i "s/CHANGE_THIS_TO_STRONG_PASSWORD/$(openssl rand -base64 32)/g" .env && \
+sed -i "s/CHANGE_THIS_TO_RANDOM_64_CHARACTER_STRING/$(openssl rand -base64 48)/g" .env && \
+MYIP=$(curl -s ifconfig.me) && \
+sed -i "s|http://YOUR_SERVER_IP:5001|http://$MYIP:5001|g" .env && \
+./deploy.sh production
+```
+
+3. После завершения скажи мне IP сервера и покажи:
+   - `docker-compose ps` (статус контейнеров)
+   - `curl http://localhost:5001/health` (проверка backend)
+
+Система будет доступна на http://IP_СЕРВЕРА:3000
+
+Логин: admin@pbkconstruction.net
+Пароль: admin123
+
+Готов? Начинай!
+
+═══════════════════════════════════════════════════════════
+
+ВАЖНО: После развертывания обязательно покажи:
+- IP адрес сервера  
+- Статус всех контейнеров
+- Результат health check
+
+═══════════════════════════════════════════════════════════
