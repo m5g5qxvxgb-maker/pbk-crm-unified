@@ -2,6 +2,7 @@
 
 ## Deployment Information
 - **Server IP**: 100.91.124.46 (Tailscale network)
+- **Public URL**: https://appp2p-01.tail96f20b.ts.net 🌐
 - **Frontend**: http://100.91.124.46:3010
 - **Backend API**: http://100.91.124.46:5002
 - **Deployment Date**: January 4, 2026
@@ -221,6 +222,28 @@ npx playwright test tests/e2e/server-test.spec.js --reporter=html
 - [ ] Fix npm vulnerabilities (1 critical)
 - [ ] Add TypeScript strict mode
 - [ ] Implement API response caching
+
+---
+
+## 🌐 Public Access via Tailscale Funnel
+
+The CRM system is now available publicly through Tailscale Funnel:
+
+**Public URL**: https://appp2p-01.tail96f20b.ts.net
+
+### Configuration
+```bash
+# Frontend (port 3010) is proxied through Tailscale Funnel
+tailscale funnel --bg --https=443 --set-path=/ 3010
+
+# Status check
+tailscale funnel status
+```
+
+### Access Methods
+1. **Public Internet**: https://appp2p-01.tail96f20b.ts.net (via Tailscale Funnel)
+2. **Tailscale Network**: http://100.91.124.46:3010 (direct to frontend)
+3. **Local (via SSH tunnel)**: http://localhost:8888 (from Mac)
 
 ---
 
