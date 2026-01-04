@@ -7,6 +7,7 @@ import StatsCard from '../../src/components/dashboard/StatsCard';
 import Card from '../../src/components/ui/Card';
 import ActivityTimeline from '../../src/components/timeline/ActivityTimeline';
 import { Users, Briefcase, FolderOpen, DollarSign, Phone } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({ 
@@ -24,7 +25,7 @@ export default function DashboardPage() {
     if (!token) return;
 
     // Fetch metrics
-    fetch('http://localhost:5001/api/dashboard/metrics', {
+    fetch(getApiUrl('/api/dashboard/metrics'), {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -37,7 +38,7 @@ export default function DashboardPage() {
       .catch(() => setLoading(false));
 
     // Fetch recent activities
-    fetch('http://localhost:5001/api/dashboard/activities', {
+    fetch(getApiUrl('/api/dashboard/activities'), {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -110,7 +111,7 @@ export default function DashboardPage() {
       {/* AI Copilot Chat - Fixed on right side */}
       <AICopilotChat onActionComplete={() => {
         // Reload metrics and activities instead of full page reload
-        fetch('http://localhost:5001/api/dashboard/metrics', {
+        fetch(getApiUrl('/api/dashboard/metrics'), {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         })
           .then(res => res.json())
@@ -118,7 +119,7 @@ export default function DashboardPage() {
             if (data.success) setMetrics(data.data);
           });
         
-        fetch('http://localhost:5001/api/dashboard/activities', {
+        fetch(getApiUrl('/api/dashboard/activities'), {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         })
           .then(res => res.json())

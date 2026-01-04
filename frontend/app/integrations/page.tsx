@@ -20,7 +20,7 @@ export default function IntegrationsPage() {
   const fetchAgents = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/agents/list', {
+      const response = await fetch(getApiUrl('/api/agents/list'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -36,7 +36,7 @@ export default function IntegrationsPage() {
   const fetchRetellCalls = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/retell/calls', {
+      const response = await fetch(getApiUrl('/api/retell/calls'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -52,7 +52,7 @@ export default function IntegrationsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/agents/activate', {
+      const response = await fetch(getApiUrl('/api/agents/activate'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,7 +80,7 @@ export default function IntegrationsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/retell/call', {
+      const response = await fetch(getApiUrl('/api/retell/call'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3000';
-const API_URL = 'http://localhost:5001';
+const BASE_URL = 'http://localhost:8888';
+const API_URL = 'http://localhost:8889';
 const TEST_USER = {
   email: 'admin@pbkconstruction.net',
   password: 'admin123'

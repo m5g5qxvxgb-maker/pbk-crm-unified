@@ -22,13 +22,13 @@ export default function TestAPIPage() {
       }
 
       try {
-        const pipelinesResp = await fetch('http://localhost:5001/api/pipelines', {
+        const pipelinesResp = await fetch(getApiUrl('/api/pipelines'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const pipelinesData = await pipelinesResp.json();
         res.pipelines = pipelinesData;
 
-        const leadsResp = await fetch('http://localhost:5001/api/leads', {
+        const leadsResp = await fetch(getApiUrl('/api/leads'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const leadsData = await leadsResp.json();

@@ -26,7 +26,7 @@ export default function CallsPage() {
   const loadCalls = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(getApiUrl('/api/calls') || 'http://localhost:5001/api/calls', {
+      const response = await fetch(getApiUrl('/api/calls'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -66,7 +66,7 @@ export default function CallsPage() {
 
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(getApiUrl('/api/calls') || 'http://localhost:5001/api/calls', {
+      const response = await fetch(getApiUrl('/api/calls'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
