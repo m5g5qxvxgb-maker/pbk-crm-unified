@@ -28,7 +28,9 @@ export default function LoginPage() {
 
     try {
       console.log('Making direct API call...');
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+      console.log('Using API URL:', API_URL);
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
