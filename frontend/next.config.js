@@ -10,8 +10,10 @@ const nextConfig = {
     ignoreBuildErrors: true
   },
   async rewrites() {
-    // Получаем API URL из переменной окружения
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5002';
+    // API URL для server-side rewrites - использует обычную переменную окружения
+    // (не NEXT_PUBLIC_*), которая читается в runtime, а не на этапе build
+    // В Docker это будет 'backend' (имя сервиса), локально 'localhost'
+    const apiUrl = process.env.API_URL || 'http://backend:5002';
     
     return [
       {
