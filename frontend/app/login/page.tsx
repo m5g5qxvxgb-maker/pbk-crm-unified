@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authAPI } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,27 +22,51 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Email:', formData.email);
+    console.log('Password length:', formData.password.length);
+
     try {
-      const response = await authAPI.login(formData);
-      const { token, user } = response.data.data;
+      console.log('Making direct API call...');
+      const response = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      console.log('=== LOGIN RESPONSE ===');
+      console.log('Status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Неверный email или пароль' }));
+        console.error('Error data:', errorData);
+        throw new Error(errorData.error || 'Неверный email или пароль');
+      }
+
+      const result = await response.json();
+      console.log('Success! Got result:', result);
+      
+      const { token, user } = result.data;
+      console.log('User:', user);
+      console.log('Token:', token.substring(0, 20) + '...');
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
+      console.log('Redirecting to dashboard...');
       router.push('/dashboard');
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError(error.response?.data?.error || 'Неверный email или пароль');
+      console.error('=== LOGIN ERROR ===');
+      console.error('Full error:', error);
+      setError(error.message || 'Неверный email или пароль');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = () => {
-    setFormData({
-      email: 'admin@pbkconstruction.net',
-      password: 'admin123'
-    });
   };
 
   return (
@@ -160,24 +183,6 @@ export default function LoginPage() {
                 ) : (
                   'Войти'
                 )}
-              </button>
-
-              {/* Demo Credentials */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">или</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={fillDemo}
-                className="w-full text-center py-2.5 px-4 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all border border-gray-200"
-              >
-                Использовать демо-доступ
               </button>
 
             </form>

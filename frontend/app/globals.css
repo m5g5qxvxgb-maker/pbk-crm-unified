@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;600;700;800&display=swap');
 
 * {
@@ -7,8 +11,8 @@
 }
 
 body {
-  background-color: #0B0E11;
-  color: #E9EEF5;
+  background-color: #f9fafb;
+  color: #111827;
   font-family: 'Inter', system-ui, sans-serif;
   line-height: 1.6;
 }
@@ -16,9 +20,38 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Playfair Display', serif;
   line-height: 1.2;
+  color: #111827;
+  font-weight: 600;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+p {
+  color: #374151;
+}
+
+/* Input fields */
+input,
+textarea,
+select {
+  color: #111827;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Labels */
+label {
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Cards */
+.card-text {
+  color: #1f2937;
 }

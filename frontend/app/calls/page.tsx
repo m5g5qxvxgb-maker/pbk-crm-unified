@@ -1,246 +1,223 @@
 'use client';
-import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { getApiUrl } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function CallsPage() {
   const [calls, setCalls] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    clientName: '',
-    phoneNumber: '',
-    purpose: '',
-    instructions: '',
+    lead_id: '',
+    date: '',
+    time: '',
+    duration: 15,
+    notes: ''
   });
+  const [leads, setLeads] = useState<any[]>([]);
 
   useEffect(() => {
     loadCalls();
+    loadLeads();
   }, []);
 
   const loadCalls = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(getApiUrl('/api/calls'), {
+      const response = await fetch(getApiUrl('/api/calls') || 'http://localhost:5001/api/calls', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       const data = await response.json();
       if (data.success) {
-        setCalls(data.data || []);
+        setCalls(data.data);
       }
     } catch (error) {
       console.error('Error loading calls:', error);
+      toast.error('Ошибка загрузки звонков');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Creating call:', formData);
-    setShowForm(false);
-    setFormData({ clientName: '', phoneNumber: '', purpose: '', instructions: '' });
+  const loadLeads = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(getApiUrl('/api/leads'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setLeads(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading leads:', error);
+    }
   };
 
-  const styles = {
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-    },
-    button: {
-      padding: '12px 24px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-    },
-    grid: {
-      display: 'grid',
-      gap: '16px',
-    },
-    card: {
-      background: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    },
-    modal: {
-      position: 'fixed' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-    },
-    modalContent: {
-      background: 'white',
-      padding: '32px',
-      borderRadius: '12px',
-      maxWidth: '500px',
-      width: '100%',
-    },
-    form: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: '16px',
-    },
-    input: {
-      padding: '12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      fontSize: '14px',
-    },
-    textarea: {
-      padding: '12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      fontSize: '14px',
-      minHeight: '100px',
-      resize: 'vertical' as const,
-    },
+  const handleSave = async () => {
+    if (!formData.lead_id) {
+      toast.error('Выберите лид');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(getApiUrl('/api/calls') || 'http://localhost:5001/api/calls', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Звонок создан');
+        setShowForm(false);
+        setFormData({ lead_id: '', date: '', time: '', duration: 15, notes: '' });
+        loadCalls();
+      } else {
+        toast.error(data.error || 'Ошибка создания звонка');
+      }
+    } catch (error) {
+      toast.error('Ошибка создания звонка');
+    }
   };
 
   return (
     <AppLayout>
-      <div style={styles.header}>
-        <div>
-          <h2 style={{fontSize: '24px', fontWeight: 'bold', marginBottom: '8px'}}>
-            Calls Management
-          </h2>
-          <p style={{color: '#6b7280'}}>
-            Create and manage automated calls
-          </p>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Звонки</h1>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {showForm ? 'Отмена' : '+ Запланировать звонок'}
+          </button>
         </div>
-        <button onClick={() => setShowForm(true)} style={styles.button}>
-          ➕ New Call
-        </button>
-      </div>
 
-      {loading ? (
-        <div style={{textAlign: 'center', padding: '40px'}}>
-          <div style={{fontSize: '48px'}}>⏳</div>
-          <div>Loading calls...</div>
-        </div>
-      ) : calls.length === 0 ? (
-        <div style={styles.card}>
-          <div style={{textAlign: 'center', padding: '40px'}}>
-            <div style={{fontSize: '64px', marginBottom: '16px'}}>📞</div>
-            <h3 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '8px'}}>
-              No calls yet
-            </h3>
-            <p style={{color: '#6b7280', marginBottom: '24px'}}>
-              Create your first call to get started
-            </p>
-            <button onClick={() => setShowForm(true)} style={styles.button}>
-              Create First Call
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div style={styles.grid}>
-          {calls.map((call) => (
-            <div key={call.id} style={styles.card}>
-              <h3 style={{fontSize: '18px', fontWeight: 'bold', marginBottom: '8px'}}>
-                {call.client_name}
-              </h3>
-              <p style={{color: '#6b7280', marginBottom: '8px'}}>
-                📞 {call.phone_number}
-              </p>
-              <p style={{color: '#6b7280'}}>
-                Status: <span style={{fontWeight: '500'}}>{call.status}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showForm && (
-        <div style={styles.modal} onClick={() => setShowForm(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '24px'}}>
-              Create New Call
-            </h3>
-            <form onSubmit={handleSubmit} style={styles.form}>
-              <div>
-                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500'}}>
-                  Client Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({...formData, clientName: e.target.value})}
-                  placeholder="John Doe"
-                  required
-                  style={styles.input}
-                />
+        {showForm && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Новый звонок</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Лид *
+                  </label>
+                  <select
+                    value={formData.lead_id}
+                    onChange={(e) => setFormData({ ...formData, lead_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Выберите лид --</option>
+                    {leads.map((lead) => (
+                      <option key={lead.id} value={lead.id}>
+                        {lead.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Дата
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Время
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Длительность (мин)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500'}}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                  placeholder="+1234567890"
-                  required
-                  style={styles.input}
-                />
-              </div>
-
-              <div>
-                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500'}}>
-                  Purpose
-                </label>
-                <input
-                  type="text"
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-                  placeholder="Follow-up call"
-                  required
-                  style={styles.input}
-                />
-              </div>
-
-              <div>
-                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500'}}>
-                  Instructions
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Заметки
                 </label>
                 <textarea
-                  value={formData.instructions}
-                  onChange={(e) => setFormData({...formData, instructions: e.target.value})}
-                  placeholder="Discuss project details..."
-                  style={styles.textarea}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Описание звонка..."
                 />
               </div>
 
-              <div style={{display: 'flex', gap: '12px'}}>
-                <button type="submit" style={styles.button}>
-                  Create Call
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Создать звонок
                 </button>
                 <button
-                  type="button"
                   onClick={() => setShowForm(false)}
-                  style={{...styles.button, background: '#6b7280'}}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                 >
-                  Cancel
+                  Отмена
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Загрузка...</p>
+          </div>
+        ) : calls.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">Нет звонков</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {calls.map((call) => (
+              <div key={call.id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">📞 {call.lead_title || 'Звонок'}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{call.notes}</p>
+                    <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                      <span>📅 {call.date ? new Date(call.date).toLocaleDateString('ru-RU') : 'Нет даты'}</span>
+                      <span>⏰ {call.time || 'Нет времени'}</span>
+                      <span>⏱️ {call.duration} мин</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </AppLayout>
   );
 }

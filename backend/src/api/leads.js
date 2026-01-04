@@ -336,4 +336,44 @@ router.get('/:id/emails', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/leads/:id/notes
+ * Add a note to a lead
+ */
+router.post('/:id/notes', authenticateToken, async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, error: 'Note content is required' });
+    }
+
+    // Update lead's description or notes field
+    const result = await db.query(
+      `UPDATE leads 
+       SET description = CASE 
+         WHEN description IS NULL OR description = '' THEN $1
+         ELSE description || E'\n\n--- Note added ' || NOW()::text || E' ---\n' || $1
+       END,
+       updated_at = NOW()
+       WHERE id = $2
+       RETURNING id`,
+      [content.trim(), req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Note added successfully',
+      data: { id: result.rows[0].id }
+    });
+  } catch (error) {
+    console.error('Error adding note:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

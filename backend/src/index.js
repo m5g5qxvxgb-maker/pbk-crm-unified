@@ -40,6 +40,7 @@ app.use('/api/users', require('./api/users'));
 app.use('/api/clients', require('./api/clients'));
 app.use('/api/leads', require('./api/leads'));
 app.use('/api/pipelines', require('./api/pipelines'));
+app.use('/api/tasks', require('./api/tasks'));
 app.use('/api/calls', require('./api/calls'));
 app.use('/api/emails', require('./api/emails'));
 app.use('/api/proposals', require('./api/proposals'));
@@ -54,6 +55,9 @@ app.use('/api/deals', require('./api/deals'));
 app.use('/api/retell', require('./api/retell'));
 app.use('/api/agents', require('./api/agents'));
 app.use('/api/offerteo', require('./api/offerteo'));
+
+// AI Copilot
+app.use('/api/ai', require('./routes/ai'));
 
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));
@@ -83,7 +87,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.API_PORT || 5000;
+const PORT = process.env.API_PORT || 5001;
 
 server.listen(PORT, () => {
   logger.info(`🚀 PBK CRM Backend running on port ${PORT}`);

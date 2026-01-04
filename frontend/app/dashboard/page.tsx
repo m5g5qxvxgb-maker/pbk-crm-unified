@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import AICopilotChat from '@/components/ai/AICopilotChat';
 import StatsCard from '../../src/components/dashboard/StatsCard';
 import Card from '../../src/components/ui/Card';
 import ActivityTimeline from '../../src/components/timeline/ActivityTimeline';
@@ -23,7 +24,7 @@ export default function DashboardPage() {
     if (!token) return;
 
     // Fetch metrics
-    fetch('http://localhost:5000/api/dashboard/metrics', {
+    fetch('http://localhost:5001/api/dashboard/metrics', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -36,7 +37,7 @@ export default function DashboardPage() {
       .catch(() => setLoading(false));
 
     // Fetch recent activities
-    fetch('http://localhost:5000/api/dashboard/activities', {
+    fetch('http://localhost:5001/api/dashboard/activities', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -105,6 +106,26 @@ export default function DashboardPage() {
           <ActivityTimeline activities={activities} />
         </Card>
       </div>
+
+      {/* AI Copilot Chat - Fixed on right side */}
+      <AICopilotChat onActionComplete={() => {
+        // Reload metrics and activities instead of full page reload
+        fetch('http://localhost:5001/api/dashboard/metrics', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) setMetrics(data.data);
+          });
+        
+        fetch('http://localhost:5001/api/dashboard/activities', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.data) setActivities(data.data);
+          });
+      }} />
     </AppLayout>
   );
 }

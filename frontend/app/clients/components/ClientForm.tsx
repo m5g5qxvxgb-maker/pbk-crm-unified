@@ -29,6 +29,7 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
     website: client?.website || '',
     notes: client?.notes || '',
     type: client?.type || 'client',
+    segment: client?.segment || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -107,47 +108,20 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
           <Input
             label="Address"
             name="address"
-            placeholder="Street address"
+            placeholder="Full address"
             value={formData.address}
             onChange={handleChange}
           />
 
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              label="City"
-              name="city"
-              placeholder="City"
-              value={formData.city}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="State"
-              name="state"
-              placeholder="State"
-              value={formData.state}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="ZIP"
-              name="zip"
-              placeholder="ZIP code"
-              value={formData.zip}
-              onChange={handleChange}
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Country"
-              name="country"
-              placeholder="Country"
-              value={formData.country}
+              label="Website"
+              name="website"
+              type="url"
+              placeholder="https://example.com"
+              value={formData.website}
               onChange={handleChange}
             />
-
-            <Input
               label="Website"
               name="website"
               type="url"
@@ -171,6 +145,23 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
               <option value="partner">Partner</option>
               <option value="vendor">Vendor</option>
               <option value="prospect">Prospect</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Segment</label>
+            <select
+              name="segment"
+              value={formData.segment}
+              onChange={handleChange}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select segment</option>
+              <option value="VIP">👑 VIP</option>
+              <option value="Regular">⭐ Regular</option>
+              <option value="New">🆕 New</option>
+              <option value="Churned">⚠️ Churned</option>
+              <option value="Potential">💎 Potential</option>
             </select>
           </div>
 

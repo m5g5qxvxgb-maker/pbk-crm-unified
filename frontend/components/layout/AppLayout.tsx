@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import AICopilot from '@/components/ai/AICopilot';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -29,14 +31,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { name: 'Leads', path: '/leads', icon: '🎯' },
-    { name: 'Clients', path: '/clients', icon: '👥' },
-    { name: 'Calls', path: '/calls', icon: '📞' },
-    { name: 'Emails', path: '/emails', icon: '📧' },
-    { name: 'Proposals', path: '/proposals', icon: '📄' },
-    { name: 'Pipelines', path: '/pipelines', icon: '⚡' },
-    { name: 'Settings', path: '/settings', icon: '⚙️' },
+    { name: 'Панель управления', path: '/dashboard', icon: '📊' },
+    { name: 'Канбан', path: '/kanban', icon: '🔥' },
+    { name: 'Лиды', path: '/leads', icon: '🎯' },
+    { name: 'Клиенты', path: '/clients', icon: '👥' },
+    { name: 'Задачи', path: '/tasks', icon: '✅' },
+    { name: 'Звонки', path: '/calls', icon: '📞' },
+    { name: 'Автоматизация', path: '/settings/automation', icon: '🤖' },
+    { name: 'Настройки', path: '/settings', icon: '⚙️' },
   ];
 
   const styles = {
@@ -105,7 +107,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     },
     userName: {
       fontSize: '14px',
-      color: '#6b7280',
+      color: '#374151',
+      fontWeight: '500',
     },
     logoutBtn: {
       padding: '8px 16px',
@@ -133,27 +136,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
         <nav style={styles.nav}>
           {navItems.map((item) => (
-            <a
+            <Link
               key={item.path}
               href={item.path}
               style={{
                 ...styles.navItem,
                 ...(pathname === item.path ? styles.navItemActive : {}),
               }}
-              onMouseOver={(e) => {
-                if (pathname !== item.path) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (pathname !== item.path) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
             >
               <span style={styles.navIcon}>{item.icon}</span>
               <span>{item.name}</span>
-            </a>
+            </Link>
           ))}
         </nav>
       </aside>
@@ -175,6 +168,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div style={styles.content}>
           {children}
         </div>
+        <AICopilot />
       </main>
     </div>
   );

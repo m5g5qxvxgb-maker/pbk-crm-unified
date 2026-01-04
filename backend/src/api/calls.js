@@ -64,6 +64,44 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 /**
+ * POST /api/calls
+ * Create a new call
+ */
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const {
+      lead_id,
+      client_id,
+      date,
+      time,
+      duration = 15,
+      status = 'pending',
+      notes,
+      phone_number,
+      direction = 'outbound'
+    } = req.body;
+
+    // Combine date and time into scheduled_at timestamp
+    let scheduled_at = null;
+    if (date && time) {
+      scheduled_at = new Date(`${date}T${time}`);
+    }
+
+    const result = await db.query(
+      `INSERT INTO calls 
+      (lead_id, client_id, phone_number, status, direction, duration, started_at, transcript, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING *`,
+      [lead_id, client_id, phone_number || '', status, direction, duration, scheduled_at, notes || '']
+    );
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /api/calls/request
  * Create call request (requires approval)
  */

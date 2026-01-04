@@ -9,6 +9,8 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE TYPE user_role AS ENUM ('admin', 'manager', 'sales', 'support', 'viewer');
 CREATE TYPE call_status AS ENUM ('pending', 'approved', 'in_progress', 'completed', 'failed', 'cancelled');
 CREATE TYPE call_request_status AS ENUM ('draft', 'pending_approval', 'approved', 'rejected', 'completed');
+CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'cancelled', 'overdue');
+CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
 
 -- Users
 CREATE TABLE users (
@@ -49,7 +51,9 @@ CREATE TABLE pipeline_stages (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     color VARCHAR(7),
+    slug VARCHAR(50),
     sort_order INTEGER DEFAULT 0,
+    default_probability INTEGER DEFAULT 50,
     automation_rules JSONB,
     is_final BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -216,8 +220,38 @@ CREATE TABLE retell_configurations (
     voice_settings JSONB,
     is_active BOOLEAN DEFAULT false,
     created_by UUID REFERENCES users(id),
+  
+
+-- Tasks (To-dos for CRM operations)
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status task_status DEFAULT 'pending',
+    priority task_priority DEFAULT 'medium',
+    due_date TIMESTAMP,
+    completed_at TIMESTAMP,
+    lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
+CREATE INDEX idx_tasks_lead ON tasks(lead_id);
+CREATE INDEX idx_tasks_client ON tasks(client_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_due_date ON tasks(due_date);
+CREATE UNIQUE INDEX idx_pipeline_stages_slug ON pipeline_stages(pipeline_id, slug) WHERE slug IS NOT NULL;
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    project_id UUID,
+    assigned_to UUID REFERENCES users(id),
+    created_by UUID REFERENCES users(id) NOT NULL,
+    tags TEXT[],
+    metadata JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_pipeline_stages_updated_at BEFORE UPDATE ON pipeline_stages
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 );
 
 -- Indexes

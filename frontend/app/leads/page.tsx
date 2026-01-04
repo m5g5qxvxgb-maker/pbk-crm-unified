@@ -2,108 +2,79 @@
 
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import LeadModal from '@/components/modals/LeadModal';
 import { getApiUrl } from '@/lib/api';
+import { useTranslation } from '@/lib/translations';
+import toast from 'react-hot-toast';
 
 export default function LeadsPage() {
+  const { t } = useTranslation();
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stages, setStages] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
+    loadLeads();
+  }, []);
+
+  const loadLeads = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('No token found, redirecting to login');
       window.location.href = '/login';
       return;
     }
 
-    console.log('Loading leads and pipelines with token:', token?.substring(0, 20) + '...');
-
-    // Load leads and pipeline stages
-    Promise.all([
-      fetch(getApiUrl('/api/leads'), {
+    try {
+      const response = await fetch(getApiUrl('/api/leads'), {
         headers: { 'Authorization': `Bearer ${token}` }
-      }).then(r => r.json()),
-      fetch(getApiUrl('/api/pipelines'), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).then(r => r.json())
-    ]).then(([leadsData, pipelinesData]) => {
-      console.log('Pipelines response:', pipelinesData);
-      console.log('Leads response:', leadsData);
+      });
       
-      if (leadsData.success) setLeads(leadsData.data);
-      
-      if (pipelinesData.success && pipelinesData.data && pipelinesData.data.length > 0) {
-        // Get stages from first pipeline
-        const firstPipeline = pipelinesData.data[0];
-        console.log('First pipeline:', firstPipeline);
-        
-        if (firstPipeline.stages && firstPipeline.stages.length > 0) {
-          setStages(firstPipeline.stages);
-          console.log('Stages set:', firstPipeline.stages);
-        } else {
-          console.error('Pipeline has no stages:', firstPipeline);
-          // Try to load stages directly
-          fetch(getApiUrl(`/api/pipelines/${firstPipeline.id}/stages`), {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-            .then(r => r.json())
-            .then(stagesData => {
-              if (stagesData.success && stagesData.data) {
-                setStages(stagesData.data);
-                console.log('Stages loaded directly:', stagesData.data);
-              }
-            });
-        }
-      } else {
-        console.error('No pipelines found or error:', pipelinesData);
+      const data = await response.json();
+      if (data.success) {
+        setLeads(data.data);
       }
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      toast.error(t('Failed to load data'));
+    } finally {
       setLoading(false);
-    }).catch((error) => {
-      console.error('Error loading data:', error);
-      setLoading(false);
-    });
-  }, []);
+    }
+  };
 
-  // Group leads by stage
-  const groupedLeads = stages.reduce((acc: any, stage: any) => {
-    acc[stage.id] = leads.filter(lead => lead.stage_id === stage.id);
-    return acc;
-  }, {});
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = !searchTerm || 
+      lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'open' && !lead.closed_at) ||
+      (filterStatus === 'closed' && lead.closed_at);
 
-  const styles = {
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '16px',
-    },
-    column: {
-      background: '#f9fafb',
-      borderRadius: '12px',
-      padding: '16px',
-    },
-    columnHeader: {
-      fontWeight: 'bold',
-      marginBottom: '16px',
-      paddingBottom: '12px',
-      borderBottom: '2px solid',
-    },
-    card: {
-      background: 'white',
-      padding: '16px',
-      borderRadius: '8px',
-      marginBottom: '12px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      cursor: 'move',
-    },
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleOpenLead = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setShowLeadModal(true);
+  };
+
+  const handleCreateNew = () => {
+    setSelectedLeadId(null);
+    setShowLeadModal(true);
   };
 
   if (loading) {
     return (
       <AppLayout>
-        <div style={{textAlign: 'center', padding: '40px'}}>
-          <div style={{fontSize: '48px'}}>⏳</div>
-          <div>Loading leads...</div>
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <div className="text-5xl mb-4">⏳</div>
+            <div className="text-gray-600">{t('Loading...')}</div>
+          </div>
         </div>
       </AppLayout>
     );
@@ -111,72 +82,99 @@ export default function LeadsPage() {
 
   return (
     <AppLayout>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-        <h2 style={{fontSize: '24px', fontWeight: 'bold'}}>
-          🎯 Leads Pipeline
-        </h2>
-        <button 
-          style={{
-            background: '#667eea',
-            color: 'white',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
-          onClick={() => alert('Add lead functionality coming soon!')}
-        >
-          + Add Lead
-        </button>
-      </div>
-      
-      {/* Debug info */}
-      <div style={{background: '#f0f0f0', padding: '12px', marginBottom: '16px', borderRadius: '8px', fontSize: '12px'}}>
-        <strong>Debug Info:</strong><br/>
-        Stages loaded: {stages.length}<br/>
-        Leads loaded: {leads.length}<br/>
-        {stages.length > 0 && (
-          <>Stages: {stages.map(s => s.name).join(', ')}</>
-        )}
-      </div>
-      
-      {stages.length === 0 ? (
-        <div style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>
-          No pipeline stages found. Please create a pipeline first.
-          <br/><br/>
-          <small>Check browser console (F12) for errors</small>
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">
+            🎯 {t('Leads')} ({filteredLeads.length})
+          </h2>
+          <button 
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            onClick={handleCreateNew}
+          >
+            <span>✨</span>
+            New Lead
+          </button>
         </div>
-      ) : (
-        <div style={styles.grid}>
-          {stages.map((stage: any) => (
-            <div key={stage.id} style={styles.column}>
-              <div style={{
-                ...styles.columnHeader, 
-                borderBottomColor: stage.color || '#3b82f6', 
-                color: stage.color || '#3b82f6'
-              }}>
-                {stage.name} ({groupedLeads[stage.id]?.length || 0})
-              </div>
-              {(groupedLeads[stage.id] || []).map((lead: any) => (
-                <div key={lead.id} style={styles.card}>
-                  <div style={{fontWeight: '600', marginBottom: '4px'}}>
+
+        {/* Search and Filters */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <input 
+              type="text"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+
+        {/* Leads List */}
+        {filteredLeads.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            No leads found. Create your first lead!
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredLeads.map((lead) => (
+              <div 
+                key={lead.id}
+                className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 flex items-center justify-between"
+                onClick={() => handleOpenLead(lead.id)}
+              >
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">
                     {lead.title}
+                  </h3>
+                  <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                    {lead.client_name && (
+                      <div>👤 {lead.client_name}</div>
+                    )}
+                    {lead.stage_name && (
+                      <div>📍 {lead.stage_name}</div>
+                    )}
+                    {lead.probability && (
+                      <div>📊 {lead.probability}%</div>
+                    )}
                   </div>
-                  <div style={{color: '#6b7280', fontSize: '14px', marginBottom: '4px'}}>
-                    {lead.company_name || 'No company'}
-                  </div>
+                </div>
+
+                <div className="text-right ml-4">
                   {lead.value && (
-                    <div style={{color: '#10b981', fontSize: '14px', fontWeight: '600'}}>
-                      {lead.currency} {lead.value.toLocaleString()}
+                    <div className="font-semibold text-green-600">
+                      ${parseFloat(lead.value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     </div>
                   )}
+                  {lead.closed_at && (
+                    <div className="text-xs text-gray-500 mt-1">✓ Closed</div>
+                  )}
                 </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lead Modal */}
+      <LeadModal
+        leadId={selectedLeadId}
+        isOpen={showLeadModal}
+        onClose={() => {
+          setShowLeadModal(false);
+          setSelectedLeadId(null);
+        }}
+        onUpdate={loadLeads}
+      />
     </AppLayout>
   );
 }

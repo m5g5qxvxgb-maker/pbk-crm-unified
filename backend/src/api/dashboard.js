@@ -9,7 +9,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     const leadsResult = await db.query('SELECT COUNT(*) as count FROM leads');
     const clientsResult = await db.query('SELECT COUNT(*) as count FROM clients');
     const callsResult = await db.query('SELECT COUNT(*) as count FROM calls');
-    const projectsResult = await db.query('SELECT COUNT(*) as count FROM projects');
+    const pipelinesResult = await db.query('SELECT COUNT(*) as count FROM pipelines');
     
     res.json({
       success: true,
@@ -17,8 +17,8 @@ router.get('/metrics', authenticateToken, async (req, res) => {
         leads: parseInt(leadsResult.rows[0].count),
         clients: parseInt(clientsResult.rows[0].count),
         calls: parseInt(callsResult.rows[0].count),
-        projects: parseInt(projectsResult.rows[0].count),
-        revenue: 0 // TODO: Calculate from projects
+        pipelines: parseInt(pipelinesResult.rows[0].count),
+        revenue: 0 // TODO: Calculate from deals
       }
     });
   } catch (error) {
@@ -28,27 +28,56 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 
 router.get('/activities', authenticateToken, async (req, res) => {
   try {
-    // Get recent activities from calls, meetings, etc
     const activities = [];
     
-    // Recent calls
-    const calls = await db.query(
-      'SELECT c.*, l.name as lead_name FROM calls c LEFT JOIN leads l ON c.lead_id = l.id ORDER BY c.created_at DESC LIMIT 5'
+    // Recent leads/deals
+    const leads = await db.query(
+      `SELECT l.id, l.title, l.value, l.created_at, 
+              ps.name as stage_name, u.first_name, u.last_name
+       FROM leads l 
+       LEFT JOIN pipeline_stages ps ON l.stage_id = ps.id
+       LEFT JOIN users u ON l.assigned_to = u.id
+       ORDER BY l.created_at DESC LIMIT 5`
     );
     
-    calls.rows.forEach(call => {
+    leads.rows.forEach(lead => {
       activities.push({
-        type: 'call',
-        title: 'Call with ' + (call.lead_name || 'Unknown'),
-        description: call.status,
-        time: formatTimeAgo(call.created_at),
-        metadata: call.duration ? call.duration + ' seconds' : null
+        type: 'lead',
+        title: lead.title || 'New Lead',
+        description: `${lead.stage_name || 'New'} • ${lead.value ? lead.value + ' PLN' : 'No value'}`,
+        time: formatTimeAgo(lead.created_at),
+        metadata: lead.first_name ? `Assigned to ${lead.first_name} ${lead.last_name}` : null
       });
+    });
+
+    // Recent tasks
+    const tasks = await db.query(
+      `SELECT t.id, t.title, t.status, t.priority, t.created_at,
+              u.first_name, u.last_name
+       FROM tasks t
+       LEFT JOIN users u ON t.created_by = u.id
+       ORDER BY t.created_at DESC LIMIT 3`
+    );
+
+    tasks.rows.forEach(task => {
+      activities.push({
+        type: 'task',
+        title: task.title,
+        description: `${task.status} • Priority: ${task.priority}`,
+        time: formatTimeAgo(task.created_at),
+        metadata: task.first_name ? `Created by ${task.first_name} ${task.last_name}` : null
+      });
+    });
+
+    // Sort by time
+    activities.sort((a, b) => {
+      // Simple sort by parsing time ago strings (not perfect but works)
+      return 0; // Keep creation order for now
     });
     
     res.json({
       success: true,
-      data: activities
+      data: activities.slice(0, 10)
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

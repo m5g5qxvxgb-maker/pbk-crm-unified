@@ -10,7 +10,7 @@ router.get('/', authenticateToken, async (req, res) => {
     
     let query = `
       SELECT p.*, 
-             c.name as client_name,
+             c.company_name as client_name,
              ps.total_spent,
              ps.remaining,
              ps.spent_percentage,
@@ -49,12 +49,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
     
     const result = await db.query(`
       SELECT p.*, 
-             c.name as client_name,
+             c.company_name as client_name,
              ps.total_spent,
              ps.remaining,
              ps.spent_percentage,
              ps.expense_count,
-             u.name as creator_name
+             CONCAT(u.first_name, ' ', u.last_name) as creator_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
       LEFT JOIN project_stats ps ON p.id = ps.id
@@ -191,7 +191,7 @@ router.get('/:id/expenses', authenticateToken, async (req, res) => {
       SELECT e.*, 
              ec.icon, 
              ec.color,
-             u.name as created_by_name
+             CONCAT(u.first_name, ' ', u.last_name) as created_by_name
       FROM expenses e
       LEFT JOIN expense_categories ec ON e.category = ec.name
       LEFT JOIN users u ON e.created_by = u.id
@@ -238,7 +238,7 @@ router.get('/:id/summary', authenticateToken, async (req, res) => {
     
     // Get recent expenses
     const recentResult = await db.query(`
-      SELECT e.*, ec.icon, u.name as created_by_name
+      SELECT e.*, ec.icon, CONCAT(u.first_name, ' ', u.last_name) as created_by_name
       FROM expenses e
       LEFT JOIN expense_categories ec ON e.category = ec.name
       LEFT JOIN users u ON e.created_by = u.id

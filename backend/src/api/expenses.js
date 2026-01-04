@@ -51,8 +51,8 @@ router.get('/', authenticateToken, async (req, res) => {
              ec.color,
              ec.name_ru as category_ru,
              p.name as project_name,
-             c.name as client_name,
-             u.name as created_by_name
+             c.company_name as client_name,
+             CONCAT(u.first_name, ' ', u.last_name) as created_by_name
       FROM expenses e
       LEFT JOIN expense_categories ec ON e.category = ec.name
       LEFT JOIN projects p ON e.project_id = p.id
@@ -125,8 +125,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
              ec.color,
              ec.name_ru as category_ru,
              p.name as project_name,
-             c.name as client_name,
-             u.name as created_by_name
+             c.company_name as client_name,
+             CONCAT(u.first_name, ' ', u.last_name) as created_by_name
       FROM expenses e
       LEFT JOIN expense_categories ec ON e.category = ec.name
       LEFT JOIN projects p ON e.project_id = p.id

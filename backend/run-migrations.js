@@ -14,7 +14,7 @@ const pool = new Pool({
 async function runMigrations() {
   console.log('🚀 Running database migrations...\n');
   
-  const migrationsDir = path.join(__dirname, 'database/migrations');
+  const migrationsDir = path.join(__dirname, '../database/migrations');
   
   if (!fs.existsSync(migrationsDir)) {
     console.log('❌ Migrations directory not found');
