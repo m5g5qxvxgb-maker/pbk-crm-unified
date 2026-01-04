@@ -2,11 +2,13 @@
 
 ## Deployment Information
 - **Server IP**: 100.91.124.46 (Tailscale network)
-- **Public URL**: https://appp2p-01.tail96f20b.ts.net 🌐
+- **Public URL**: https://appp2p-01.tail96f20b.ts.net 🌐 **[LOGIN РАБОТАЕТ ✅]**
 - **Frontend**: http://100.91.124.46:3010
 - **Backend API**: http://100.91.124.46:5002
+- **Reverse Proxy**: Nginx на порту 8081
 - **Deployment Date**: January 4, 2026
-- **Total Time**: ~2 hours
+- **Login Fix Date**: January 4, 2026 21:59 CET
+- **Total Time**: ~4 hours
 
 ---
 
