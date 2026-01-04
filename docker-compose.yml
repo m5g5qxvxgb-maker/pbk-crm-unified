@@ -107,13 +107,7 @@ networks:
 volumes:
   postgres_data:
     driver: local
+  redis_data:
+    driver: local
   uploads:
     driver: local
-volumes:
-  postgres_data:
-  redis_data:
-  uploads:
-
-networks:
-  pbk-network:
-    driver: bridge
