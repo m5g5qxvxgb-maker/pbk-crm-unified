@@ -1,0 +1,55 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - heading "🏗️ PBK CRM" [level=1] [ref=e5]
+      - navigation [ref=e6]:
+        - link "📊 Панель управления" [ref=e7] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e8]: 📊
+          - generic [ref=e9]: Панель управления
+        - link "🔥 Канбан" [ref=e10] [cursor=pointer]:
+          - /url: /kanban
+          - generic [ref=e11]: 🔥
+          - generic [ref=e12]: Канбан
+        - link "🎯 Лиды" [ref=e13] [cursor=pointer]:
+          - /url: /leads
+          - generic [ref=e14]: 🎯
+          - generic [ref=e15]: Лиды
+        - link "👥 Клиенты" [ref=e16] [cursor=pointer]:
+          - /url: /clients
+          - generic [ref=e17]: 👥
+          - generic [ref=e18]: Клиенты
+        - link "✅ Задачи" [ref=e19] [cursor=pointer]:
+          - /url: /tasks
+          - generic [ref=e20]: ✅
+          - generic [ref=e21]: Задачи
+        - link "📞 Звонки" [ref=e22] [cursor=pointer]:
+          - /url: /calls
+          - generic [ref=e23]: 📞
+          - generic [ref=e24]: Звонки
+        - link "🤖 Автоматизация" [ref=e25] [cursor=pointer]:
+          - /url: /settings/automation
+          - generic [ref=e26]: 🤖
+          - generic [ref=e27]: Автоматизация
+        - link "⚙️ Настройки" [ref=e28] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e29]: ⚙️
+          - generic [ref=e30]: Настройки
+    - main [ref=e31]:
+      - generic [ref=e32]:
+        - heading "Звонки" [level=2] [ref=e33]
+        - generic [ref=e34]:
+          - generic [ref=e35]: Admin User (admin)
+          - button "Logout" [ref=e36] [cursor=pointer]
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - heading "Звонки" [level=1] [ref=e40]
+          - button "+ Запланировать звонок" [ref=e41] [cursor=pointer]
+        - paragraph [ref=e43]: Нет звонков
+      - button "🤖" [ref=e44] [cursor=pointer]:
+        - generic [ref=e45]: 🤖
+  - alert [ref=e46]
+```
