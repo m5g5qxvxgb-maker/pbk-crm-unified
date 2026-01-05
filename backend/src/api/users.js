@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const db = require('../database/db');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
@@ -78,12 +79,15 @@ router.post('/', authenticateToken, authorizeRole('admin'), async (req, res) => 
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
+    // Hash default password
+    const hashedPassword = await bcrypt.hash('changeme', 10);
+
     const result = await db.query(
       `INSERT INTO users 
        (email, password_hash, first_name, last_name, role, phone, can_create_calls, can_approve_calls)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, email, first_name, last_name, role, created_at`,
-      [email, 'changeme', first_name, last_name, role || 'viewer', phone, can_create_calls || false, can_approve_calls || false]
+      [email, hashedPassword, first_name, last_name, role || 'viewer', phone, can_create_calls || false, can_approve_calls || false]
     );
 
     res.json({ success: true, data: result.rows[0] });

@@ -32,6 +32,10 @@ console.log(`🔌 API: ${API_URL}`);
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
+  
+  // Логируем Chat ID для настройки уведомлений
+  console.log(`📱 /start от пользователя | Chat ID: ${chatId} | Username: @${msg.from.username || 'unknown'} | Name: ${msg.from.first_name || ''} ${msg.from.last_name || ''}`);
+  
   const keyboard = {
     reply_markup: {
       inline_keyboard: [
@@ -661,6 +665,71 @@ bot.onText(/\/help/, (msg) => {
 
 🌐 Web интерфейс: http://localhost:3008`, { parse_mode: 'Markdown' });
 });
+
+// ============================================
+// ФУНКЦИИ ДЛЯ АУДИТА И УВЕДОМЛЕНИЙ
+// ============================================
+
+/**
+ * Отправка уведомлений о прогрессе аудита
+ * @param {number} chatId - ID чата для отправки
+ * @param {string} message - Текст уведомления
+ * @param {object} options - Дополнительные опции (parse_mode, etc.)
+ */
+async function sendAuditNotification(chatId, message, options = {}) {
+  try {
+    const defaultOptions = {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+      ...options
+    };
+    
+    await bot.sendMessage(chatId, message, defaultOptions);
+    console.log(`✅ Уведомление аудита отправлено в чат ${chatId}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Ошибка отправки уведомления аудита:`, error.message);
+    return false;
+  }
+}
+
+// Команда для проверки статуса аудита
+bot.onText(/\/audit/, (msg) => {
+  const chatId = msg.chat.id;
+  
+  console.log(`🔍 /audit команда от Chat ID: ${chatId}`);
+  
+  bot.sendMessage(chatId, `🔍 <b>Статус аудита PBK CRM</b>
+
+Эта команда используется для получения уведомлений о прогрессе аудита системы.
+
+<b>Ваш Chat ID:</b> <code>${chatId}</code>
+
+Используйте этот ID для настройки уведомлений.
+
+Для проверки связи отправьте команду /ping`, { parse_mode: 'HTML' });
+});
+
+// Команда для тестирования связи
+bot.onText(/\/ping/, (msg) => {
+  const chatId = msg.chat.id;
+  
+  bot.sendMessage(chatId, `✅ Pong! 
+
+<b>Информация о чате:</b>
+• Chat ID: <code>${chatId}</code>
+• Тип: ${msg.chat.type}
+• Username: @${msg.from.username || 'нет'}
+• Имя: ${msg.from.first_name || ''} ${msg.from.last_name || ''}
+
+Бот работает корректно! 🤖`, { parse_mode: 'HTML' });
+});
+
+// Экспортируем функцию для использования извне
+module.exports = {
+  bot,
+  sendAuditNotification
+};
 
 // Обработка ошибок
 bot.on('polling_error', (error) => {

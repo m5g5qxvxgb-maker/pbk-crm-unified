@@ -19,6 +19,41 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle response errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== 'undefined') {
+      const status = error.response?.status;
+      
+      // 401 Unauthorized - token expired or invalid
+      if (status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Redirect to login if not already there
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+      
+      // 403 Forbidden - insufficient permissions
+      if (status === 403) {
+        console.error('Access denied: Insufficient permissions');
+        // You can show a toast notification here
+      }
+      
+      // 500+ Server errors
+      if (status >= 500) {
+        console.error('Server error:', error.response?.data?.error || 'Internal server error');
+        // You can show a toast notification here
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export const getApiUrl = (path: string) => {
   // Всегда используем относительные пути
   const cleanPath = path.startsWith('/api') ? path : `/api${path}`;

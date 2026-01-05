@@ -23,6 +23,7 @@ services:
       - "5002:5002"
     volumes:
       - uploads:/app/uploads
+      - ./backend/logs:/app/logs
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

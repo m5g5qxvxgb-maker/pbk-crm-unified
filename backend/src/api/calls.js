@@ -3,14 +3,16 @@ const router = express.Router();
 const db = require('../database/db');
 const retellService = require('../services/retell/service');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
+const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
  * GET /api/calls
  * Get all calls with filters
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheMiddleware(120), async (req, res) => {
   try {
-    const { lead_id, client_id, status, date_from, date_to, limit = 50, offset = 0 } = req.query;
+    const { lead_id, client_id, status, date_from, date_to, page = 1, limit = 50 } = req.query;
     
     let query = 'SELECT * FROM calls WHERE 1=1';
     const params = [];
@@ -37,11 +39,10 @@ router.get('/', authenticateToken, async (req, res) => {
       params.push(date_to);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
+    query += ` ORDER BY created_at DESC`;
 
-    const result = await db.query(query, params);
-    res.json({ success: true, data: result.rows });
+    const result = await paginatedQuery(query, params, parseInt(page), parseInt(limit));
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

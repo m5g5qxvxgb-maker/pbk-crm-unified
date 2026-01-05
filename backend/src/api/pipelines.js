@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
 
 // GET /api/pipelines - Get all pipelines with stages
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheMiddleware(600), async (req, res) => {
   try {
     const pipelinesResult = await db.query(
       `SELECT id, name, description, color, is_active, sort_order, created_at

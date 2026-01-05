@@ -2,18 +2,20 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
+const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
  * Tasks API - To-dos for leads, clients, projects
  */
 
 // Get all tasks with filters
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheMiddleware(120), async (req, res) => {
   try {
     const { 
       status, priority, assigned_to, created_by,
       lead_id, client_id, project_id,
-      overdue, limit = 50, offset = 0 
+      overdue, page = 1, limit = 50
     } = req.query;
     
     let query = `
@@ -74,19 +76,12 @@ router.get('/', authenticateToken, async (req, res) => {
     }
     
     query += ` ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC`;
-    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
     
-    const result = await db.query(query, params);
+    const result = await paginatedQuery(query, params, parseInt(page), parseInt(limit));
     
     res.json({ 
       success: true, 
-      tasks: result.rows,
-      pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        count: result.rows.length
-      }
+      ...result
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

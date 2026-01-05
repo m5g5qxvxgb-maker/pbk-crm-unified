@@ -2,24 +2,38 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const db = require('../database/db');
 const logger = require('../utils/logger');
 const { authenticateToken } = require('../middleware/auth');
+const { validate } = require('../middleware/validation');
+
+// Rate limiter for login endpoint
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Max 5 attempts per window
+  message: {
+    success: false,
+    error: 'Too many login attempts. Please try again in 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn(`Rate limit exceeded for IP: ${req.ip}, email: ${req.body.email}`);
+    res.status(429).json({
+      success: false,
+      error: 'Too many login attempts. Please try again in 15 minutes.'
+    });
+  }
+});
 
 /**
  * POST /api/auth/register
  * Register new user
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validate('register'), async (req, res) => {
   try {
     const { email, password, first_name, last_name, role = 'viewer' } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email and password are required' 
-      });
-    }
 
     // Check if user exists
     const existingUser = await db.query(
@@ -72,18 +86,11 @@ router.post('/register', async (req, res) => {
 
 /**
  * POST /api/auth/login
- * Login user
+ * Login user (rate limited)
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, validate('login'), async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email and password are required' 
-      });
-    }
 
     // Find user
     const result = await db.query(

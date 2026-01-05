@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
 
-router.get('/metrics', authenticateToken, async (req, res) => {
+router.get('/metrics', authenticateToken, cacheMiddleware(300), async (req, res) => {
   try {
     // Count leads
     const leadsResult = await db.query('SELECT COUNT(*) as count FROM leads');
@@ -26,7 +27,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/activities', authenticateToken, async (req, res) => {
+router.get('/activities', authenticateToken, cacheMiddleware(120), async (req, res) => {
   try {
     const activities = [];
     

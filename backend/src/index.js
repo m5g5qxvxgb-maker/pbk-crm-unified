@@ -2,6 +2,7 @@ require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const http = require('http');
 const { Server } = require('socket.io');
 const logger = require('./utils/logger');
@@ -14,6 +15,18 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+
+// Compression middleware - compress all responses
+app.use(compression({
+  level: 6, // Compression level (0-9)
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 
 // Middleware - РАЗРЕШАЕМ ВСЁ (временно для отладки)
 app.use((req, res, next) => {

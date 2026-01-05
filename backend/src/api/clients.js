@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
+const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
  * GET /api/clients
  * Get all clients
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search, assigned_to } = req.query;
+    const { page = 1, limit = 50, search, assigned_to } = req.query;
     
     let query = `SELECT id, company_name, contact_person, email, phone, 
                         website, city, country, tags, assigned_to, created_at
@@ -28,12 +30,11 @@ router.get('/', authenticateToken, async (req, res) => {
       params.push(assigned_to);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
+    query += ` ORDER BY created_at DESC`;
 
-    const result = await db.query(query, params);
+    const result = await paginatedQuery(query, params, parseInt(page), parseInt(limit));
     
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

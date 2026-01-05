@@ -54,3 +54,4 @@ docker-compose.override.yml
 # Copilot logs
 copilot-agent/*.log
 backend/src/utils/logs/
+.jwt_secret

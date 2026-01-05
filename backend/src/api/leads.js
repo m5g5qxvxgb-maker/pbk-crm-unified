@@ -2,15 +2,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const { cacheMiddleware } = require('../middleware/cache');
+const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
  * GET /api/leads
  * Get all leads with filters
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
   try {
     const { 
-      limit = 50, offset = 0, 
+      page = 1, limit = 50,
       pipeline_id, stage_id, assigned_to, search 
     } = req.query;
     
@@ -53,12 +55,11 @@ router.get('/', authenticateToken, async (req, res) => {
       paramIndex++;
     }
 
-    query += ` ORDER BY l.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-    params.push(limit, offset);
+    query += ` ORDER BY l.created_at DESC`;
 
-    const result = await db.query(query, params);
+    const result = await paginatedQuery(query, params, parseInt(page), parseInt(limit));
     
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
