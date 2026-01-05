@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// Всегда используем относительные пути - nginx проксирует /api/* на backend
+const API_URL = '';
 
 const api = axios.create({
-  baseURL: API_URL || '/api',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,11 +20,9 @@ api.interceptors.request.use((config) => {
 });
 
 export const getApiUrl = (path: string) => {
-  // Remove /api prefix if path already includes it
+  // Всегда используем относительные пути
   const cleanPath = path.startsWith('/api') ? path : `/api${path}`;
-  // Return full URL without double /api
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  return baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
+  return cleanPath;
 };
 
 // Auth API - updated

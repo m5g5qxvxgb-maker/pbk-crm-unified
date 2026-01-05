@@ -28,9 +28,9 @@ export default function LoginPage() {
 
     try {
       console.log('Making direct API call...');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-      console.log('Using API URL:', API_URL || 'relative path');
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      // Всегда используем относительный путь - nginx проксирует на backend
+      console.log('Using API URL: relative path /api');
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
