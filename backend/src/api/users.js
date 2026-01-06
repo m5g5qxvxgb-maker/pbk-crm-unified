@@ -5,6 +5,36 @@ const db = require('../database/db');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
 /**
+ * GET /api/users/list
+ * Get all users (no auth - for internal use like Telegram bot)
+ * Should be restricted by network (only localhost)
+ */
+router.get('/list', async (req, res) => {
+  try {
+    // Only allow from localhost for security
+    const ip = req.ip || req.connection.remoteAddress;
+    if (!ip.includes('127.0.0.1') && !ip.includes('::1') && !ip.includes('localhost') && !ip.includes('172.')) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const result = await db.query(
+      `SELECT id, email, first_name, last_name, role, phone, telegram_id
+       FROM users WHERE is_active = true ORDER BY first_name, last_name`
+    );
+    
+    // Format name for display
+    const users = result.rows.map(user => ({
+      ...user,
+      name: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email
+    }));
+    
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * GET /api/users
  * Get all users (admin only)
  */

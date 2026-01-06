@@ -19,6 +19,9 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       RETELL_API_KEY: ${RETELL_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL}
     ports:
       - "5002:5002"
     volumes:
@@ -53,16 +56,22 @@ services:
       retries: 3
     restart: unless-stopped
 
-  telegram-bot:
-    build:
-      context: ./telegram-bot
-      dockerfile: Dockerfile
-    container_name: pbk-telegram
+  integrations:
+    container_name: pbk-integrations
+    image: pbk-integrations:latest
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: production
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-533868685}
-      API_URL: http://100.91.124.46:5002
+      TELEGRAM_OWNER_CHAT_ID: ${TELEGRAM_OWNER_CHAT_ID:-443876287}
+      TELEGRAM_APPROVAL_GROUP: ${TELEGRAM_APPROVAL_GROUP:--5088238645}
+      TELEGRAM_SALES_GROUP: ${TELEGRAM_SALES_GROUP:--5088238645}
+      CRM_API_URL: http://backend:5002/api/bot-internal
+      CRM_WEB_URL: http://100.91.124.46:3010
+      BASE_URL: https://appp2p-01.tail96f20b.ts.net
+      RETELL_API_KEY: ${RETELL_API_KEY}
+      RETELL_AGENT_ID: ${RETELL_AGENT_ID}
+      RETELL_PHONE_NUMBER: ${RETELL_PHONE_NUMBER}
+      OFFERTEO_API_KEY: ${OFFERTEO_API_KEY}
       POSTGRES_HOST: 100.91.124.46
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-pbk_crm}
@@ -71,6 +80,8 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+  
+  # NOTE: Integrations container now runs in POLLING mode (webhook doesn't work with Cloudflare+Starlink CGNAT)
 
 volumes:
   uploads:

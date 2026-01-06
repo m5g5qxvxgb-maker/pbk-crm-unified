@@ -1,0 +1,21 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY backend/package*.json ./
+RUN npm install --production
+
+# Copy backend source
+COPY backend/src ./src
+COPY .env ./.env
+COPY .jwt_secret ./.jwt_secret
+
+# Make integration manager executable
+RUN chmod +x /app/src/integrations/unified-integration-manager.js
+
+# Environment
+ENV NODE_ENV=production
+
+# Run integration manager
+CMD ["node", "src/integrations/unified-integration-manager.js"]

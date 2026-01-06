@@ -195,7 +195,7 @@ router.get('/call/:call_id', async (req, res) => {
 router.get('/calls', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT c.*, l.name as lead_name, l.company 
+      `SELECT c.*, l.title as lead_name, l.company 
        FROM calls c
        LEFT JOIN leads l ON c.lead_id = l.id
        WHERE c.retell_call_id IS NOT NULL

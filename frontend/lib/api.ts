@@ -95,6 +95,7 @@ export const leadsAPI = {
   getById: (id: string) => api.get(`/leads/${id}`),
   create: (data: any) => api.post('/leads', data),
   update: (id: string, data: any) => api.put(`/leads/${id}`, data),
+  delete: (id: string) => api.delete(`/leads/${id}`),
 };
 
 // Emails API

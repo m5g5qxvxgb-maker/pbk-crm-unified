@@ -64,10 +64,31 @@ app.use('/api/projects', require('./api/projects'));
 app.use('/api/expenses', require('./api/expenses'));
 app.use('/api/deals', require('./api/deals'));
 
+// Internal API for Telegram bot (no auth)
+app.use('/api/bot-internal', require('./api/bot-internal'));
+
 // New integrations
 app.use('/api/retell', require('./api/retell'));
 app.use('/api/agents', require('./api/agents'));
 app.use('/api/offerteo', require('./api/offerteo'));
+
+// Telegram webhook
+const telegramWebhookRouter = require('./api/telegram-webhook');
+app.use('/api/telegram-webhook', telegramWebhookRouter);
+
+// NOTE: Telegram bot теперь работает в отдельном контейнере (pbk-integrations) в polling режиме
+// Webhook не работает через Cloudflare + Starlink CGNAT
+// Register Telegram bot instance for webhook processing (DISABLED - bot runs in separate container)
+// try {
+//   const { bot } = require('./integrations/unified-integration-manager');
+//   if (bot && telegramWebhookRouter.registerBot) {
+//     telegramWebhookRouter.registerBot(bot);
+//     logger.info('✅ Telegram bot registered for webhook processing');
+//   }
+// } catch (error) {
+//   logger.warn('⚠️ Telegram integration not loaded (this is ok if running separately)');
+// }
+logger.info('ℹ️ Telegram bot runs in separate integrations container (polling mode)');
 
 // AI Copilot
 app.use('/api/ai', require('./routes/ai'));
