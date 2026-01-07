@@ -133,30 +133,30 @@ router.post('/copilot', authenticateToken, async (req, res) => {
       actionResult = await executeCRMAction(command, message, req.user.id);
     }
 
-    // Try OpenRouter first (free Gemini model)
-    const openrouterKey = process.env.OPENROUTER_API_KEY;
+    // AI Provider Selection - OpenAI first, then OpenRouter fallback
     const openaiKey = process.env.OPENAI_API_KEY;
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
     
-    let useOpenRouter = false;
+    let useOpenAI = false;
     let apiKey = null;
     let apiUrl = null;
     let model = null;
 
-    // Prefer OpenRouter if available
-    if (openrouterKey && openrouterKey !== 'sk-placeholder') {
-      useOpenRouter = true;
-      apiKey = openrouterKey;
-      apiUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-      model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
-    } else if (openaiKey && openaiKey !== 'sk-placeholder') {
-      useOpenRouter = false;
+    // Prefer OpenAI if available
+    if (openaiKey && openaiKey !== 'sk-placeholder' && openaiKey !== '') {
+      useOpenAI = true;
       apiKey = openaiKey;
       apiUrl = 'https://api.openai.com/v1';
       model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+    } else if (openrouterKey && openrouterKey !== 'sk-placeholder' && openrouterKey !== '') {
+      useOpenAI = false;
+      apiKey = openrouterKey;
+      apiUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+      model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
     } else {
       return res.status(503).json({ 
         error: 'AI service not configured',
-        message: 'Neither OpenRouter nor OpenAI API key is configured. Please set OPENROUTER_API_KEY or OPENAI_API_KEY in environment variables.'
+        message: 'Please configure OPENAI_API_KEY (recommended) or OPENROUTER_API_KEY in environment variables.'
       });
     }
 
@@ -205,8 +205,8 @@ Data: ${JSON.stringify(actionResult.data, null, 2)}`;
       'Content-Type': 'application/json'
     };
 
-    // OpenRouter requires additional headers
-    if (useOpenRouter) {
+    // OpenRouter requires additional headers (if using OpenRouter)
+    if (!useOpenAI) {
       headers['HTTP-Referer'] = 'https://crm.pbkconstruction.net';
       headers['X-Title'] = 'PBK CRM AI Copilot';
     }
@@ -227,7 +227,7 @@ Data: ${JSON.stringify(actionResult.data, null, 2)}`;
     res.json({
       success: true,
       message: aiMessage,
-      provider: useOpenRouter ? 'openrouter' : 'openai',
+      provider: useOpenAI ? 'openai' : 'openrouter',
       model: model,
       usage: response.data.usage,
       action: actionResult ? {
@@ -402,24 +402,25 @@ router.post('/generate-response', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Client message is required' });
     }
 
-    const openrouterKey = process.env.OPENROUTER_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
     
-    let useOpenRouter = false;
+    let useOpenAI = false;
     let apiKey = null;
     let apiUrl = null;
     let model = null;
 
-    if (openrouterKey && openrouterKey !== 'sk-placeholder') {
-      useOpenRouter = true;
-      apiKey = openrouterKey;
-      apiUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-      model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
-    } else if (openaiKey && openaiKey !== 'sk-placeholder') {
-      useOpenRouter = false;
+    // Prefer OpenAI if available
+    if (openaiKey && openaiKey !== 'sk-placeholder' && openaiKey !== '') {
+      useOpenAI = true;
       apiKey = openaiKey;
       apiUrl = 'https://api.openai.com/v1';
       model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+    } else if (openrouterKey && openrouterKey !== 'sk-placeholder' && openrouterKey !== '') {
+      useOpenAI = false;
+      apiKey = openrouterKey;
+      apiUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+      model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
     } else {
       return res.status(503).json({ 
         error: 'AI service not configured'
@@ -448,7 +449,7 @@ router.post('/generate-response', authenticateToken, async (req, res) => {
       'Content-Type': 'application/json'
     };
 
-    if (useOpenRouter) {
+    if (!useOpenAI) {
       headers['HTTP-Referer'] = 'https://crm.pbkconstruction.net';
       headers['X-Title'] = 'PBK CRM AI Response Generator';
     }
@@ -478,7 +479,7 @@ router.post('/generate-response', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       response: generatedResponse,
-      provider: useOpenRouter ? 'openrouter' : 'openai',
+      provider: useOpenAI ? 'openai' : 'openrouter',
       model: model
     });
 

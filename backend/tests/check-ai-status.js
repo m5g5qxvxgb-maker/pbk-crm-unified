@@ -71,20 +71,6 @@ function checkAIConfig() {
   // Parse .env
   const envVars = parseEnvFile(envPath);
   
-  // Check OpenRouter
-  log('\n📦 OpenRouter Configuration:', 'cyan');
-  const openrouterKey = envVars.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
-  const openrouterModel = envVars.OPENROUTER_MODEL || process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
-  
-  if (openrouterKey && openrouterKey !== '' && openrouterKey !== 'sk-placeholder') {
-    log(`   ✅ API Key: ${openrouterKey.substring(0, 15)}...`, 'green');
-    log(`   ✅ Model: ${openrouterModel}`, 'green');
-    log('   ✅ Status: Configured', 'green');
-  } else {
-    log('   ⚠️  Not configured (optional)', 'yellow');
-    log('   Get key at: https://openrouter.ai/keys', 'blue');
-  }
-  
   // Check OpenAI
   log('\n🤖 OpenAI Configuration:', 'cyan');
   const openaiKey = envVars.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
@@ -93,10 +79,25 @@ function checkAIConfig() {
   if (openaiKey && openaiKey !== '' && openaiKey !== 'sk-placeholder') {
     log(`   ✅ API Key: ${openaiKey.substring(0, 10)}...`, 'green');
     log(`   ✅ Model: ${openaiModel}`, 'green');
-    log('   ✅ Status: Configured', 'green');
+    log('   ✅ Status: Configured (PRIMARY)', 'green');
   } else {
-    log('   ⚠️  Not configured (optional)', 'yellow');
+    log('   ❌ Not configured', 'red');
+    log('   This is now the PRIMARY provider!', 'yellow');
     log('   Get key at: https://platform.openai.com/api-keys', 'blue');
+  }
+  
+  // Check OpenRouter
+  log('\n📦 OpenRouter Configuration:', 'cyan');
+  const openrouterKey = envVars.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
+  const openrouterModel = envVars.OPENROUTER_MODEL || process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001:free';
+  
+  if (openrouterKey && openrouterKey !== '' && openrouterKey !== 'sk-placeholder') {
+    log(`   ✅ API Key: ${openrouterKey.substring(0, 15)}...`, 'green');
+    log(`   ✅ Model: ${openrouterModel}`, 'green');
+    log('   ✅ Status: Configured (FALLBACK)', 'green');
+  } else {
+    log('   ⚠️  Not configured (optional fallback)', 'yellow');
+    log('   Get key at: https://openrouter.ai/keys', 'blue');
   }
   
   // Check AI routes file
@@ -133,30 +134,41 @@ function checkAIConfig() {
   log('  Summary', 'bold');
   log('═'.repeat(50), 'cyan');
   
-  const hasOpenRouter = openrouterKey && openrouterKey !== '' && openrouterKey !== 'sk-placeholder';
   const hasOpenAI = openaiKey && openaiKey !== '' && openaiKey !== 'sk-placeholder';
+  const hasOpenRouter = openrouterKey && openrouterKey !== '' && openrouterKey !== 'sk-placeholder';
   
-  if (hasOpenRouter || hasOpenAI) {
-    log('\n✅ AI Integration is CONFIGURED and READY!', 'green');
+  if (hasOpenAI) {
+    log('\n✅ OpenAI Integration is CONFIGURED (PRIMARY)!', 'green');
+    log('   • Using OpenAI as main provider', 'green');
     
     if (hasOpenRouter) {
-      log('   • Using OpenRouter (recommended)', 'green');
-    }
-    if (hasOpenAI) {
-      log('   • Using OpenAI as fallback', 'green');
+      log('   • OpenRouter available as fallback', 'green');
     }
     
     log('\n📝 Next steps:', 'cyan');
-    log('   1. Start backend: npm start', 'blue');
-    log('   2. Test endpoint: node tests/test-ai-integration.js', 'blue');
-    log('   3. Check docs: backend/docs/AI_INTEGRATION_SETUP.md', 'blue');
+    log('   1. Verify API key has credits: https://platform.openai.com/account/billing', 'blue');
+    log('   2. Start backend: npm start', 'blue');
+    log('   3. Test integration: node tests/test-ai-integration.js', 'blue');
+    log('   4. Monitor usage: https://platform.openai.com/usage', 'blue');
+    
+  } else if (hasOpenRouter) {
+    log('\n⚠️  Using OpenRouter (OpenAI not configured)', 'yellow');
+    log('   • OpenRouter is working but is now FALLBACK only', 'yellow');
+    log('   • Please configure OpenAI for best results', 'yellow');
+    
+    log('\n📝 To configure OpenAI (RECOMMENDED):', 'cyan');
+    log('   1. Get API key: https://platform.openai.com/api-keys', 'blue');
+    log('   2. Edit .env: OPENAI_API_KEY=sk-your-key-here', 'blue');
+    log('   3. Restart backend', 'blue');
+    log('   4. See docs: backend/docs/OPENAI_SETUP.md', 'blue');
     
   } else {
-    log('\n⚠️  AI Integration is NOT configured', 'yellow');
-    log('\n📝 To configure:', 'cyan');
-    log('   1. Get API key from https://openrouter.ai/keys (free)', 'blue');
-    log('   2. Add to .env: OPENROUTER_API_KEY=sk-or-v1-...', 'blue');
+    log('\n❌ AI Integration is NOT configured!', 'red');
+    log('\n📝 To configure OpenAI (PRIMARY):', 'cyan');
+    log('   1. Get API key from https://platform.openai.com/api-keys', 'blue');
+    log('   2. Add to .env: OPENAI_API_KEY=sk-...', 'blue');
     log('   3. Run this check again: node tests/check-ai-status.js', 'blue');
+    log('   4. See setup guide: backend/docs/OPENAI_SETUP.md', 'blue');
   }
   
   log('');
