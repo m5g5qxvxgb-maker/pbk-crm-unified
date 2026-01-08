@@ -287,13 +287,13 @@ export default function PipelinesPage() {
           <div style={{background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'}}>
             <div style={{fontSize: '14px', color: '#6b7280', marginBottom: '8px'}}>Total Value</div>
             <div style={{fontSize: '28px', fontWeight: 'bold', color: '#10b981'}}>
-              ${filteredLeads.reduce((sum, lead) => sum + (lead.value || 0), 0).toLocaleString()}
+              {filteredLeads.reduce((sum, lead) => sum + (lead.value || 0), 0).toLocaleString()} zł
             </div>
           </div>
           <div style={{background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'}}>
             <div style={{fontSize: '14px', color: '#6b7280', marginBottom: '8px'}}>Weighted Value</div>
             <div style={{fontSize: '28px', fontWeight: 'bold', color: '#667eea'}}>
-              ${Math.round(filteredLeads.reduce((sum, lead) => sum + ((lead.value || 0) * (lead.probability || 0) / 100), 0)).toLocaleString()}
+              {Math.round(filteredLeads.reduce((sum, lead) => sum + ((lead.value || 0) * (lead.probability || 0) / 100), 0)).toLocaleString()} zł
             </div>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function PipelinesPage() {
                     {lead.value && (
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <div style={{color: '#10b981', fontSize: '15px', fontWeight: '600'}}>
-                          ${lead.value.toLocaleString()}
+                          {lead.value.toLocaleString()} zł
                         </div>
                         <div style={{color: '#6b7280', fontSize: '12px'}}>
                           {lead.probability}% prob

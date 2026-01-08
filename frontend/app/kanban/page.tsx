@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import LeadModal from '@/components/modals/LeadModal';
 import { getApiUrl } from '@/lib/api';
@@ -64,7 +64,7 @@ function SortableCard({ lead, onClick }: any) {
       </h3>
       <div className="flex items-center justify-between text-sm">
         <span className="text-green-600 font-semibold">
-          ${(parseFloat(lead.value) || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+          {(parseFloat(lead.value) || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
         </span>
         <span className="text-gray-500">{lead.probability || 50}%</span>
       </div>
@@ -129,6 +129,7 @@ function DroppableStage({ stage, leads, onLeadClick, t }: any) {
 
 export default function KanbanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const [leads, setLeads] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
@@ -167,6 +168,17 @@ export default function KanbanPage() {
       }
     }
   }, [selectedPipeline, pipelines]);
+
+  // Handle leadId from URL query params
+  useEffect(() => {
+    const leadIdFromUrl = searchParams.get('leadId');
+    if (leadIdFromUrl && leads.length > 0) {
+      setSelectedLeadId(leadIdFromUrl);
+      setShowLeadModal(true);
+      // Clean up URL without page reload
+      window.history.replaceState({}, '', '/kanban');
+    }
+  }, [searchParams, leads]);
 
   const loadData = async () => {
     const token = localStorage.getItem('token');
@@ -396,17 +408,9 @@ export default function KanbanPage() {
 
   return (
     <AppLayout>
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🔥 {t('Kanban Board')}
-            </h1>
-            <p className="text-gray-600">{t('Drag & drop deals through sales pipeline')}</p>
-          </div>
-
-          <div className="flex gap-3 items-center flex-wrap">
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex justify-start items-center gap-3">
             {pipelines.length > 0 && (
               <select
                 value={selectedPipeline}
@@ -423,7 +427,6 @@ export default function KanbanPage() {
 
             <button
               onClick={() => {
-                // Create new lead modal logic will be added
                 setSelectedLeadId(null);
                 setShowLeadModal(true);
               }}
@@ -451,69 +454,43 @@ export default function KanbanPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-500">{t('Total Deals')}</p>
-            <p className="text-2xl font-bold text-gray-900">{filteredLeads.length}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-500">{t('Total Value')}</p>
-            <p className="text-2xl font-bold text-green-600 truncate">
-              ${filteredLeads.reduce((sum, lead) => sum + (parseFloat(lead.value) || 0), 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-500">{t('Weighted Value')}</p>
-            <p className="text-2xl font-bold text-purple-600 truncate">
-              ${Math.round(filteredLeads.reduce((sum, lead) =>
-                sum + ((parseFloat(lead.value) || 0) * (lead.probability || 0) / 100), 0
-              )).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-500">{t('Avg Deal Size')}</p>
-            <p className="text-2xl font-bold text-blue-600 truncate">
-              ${filteredLeads.length > 0
-                ? Math.round(filteredLeads.reduce((sum, lead) => sum + (parseFloat(lead.value) || 0), 0) / filteredLeads.length).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                : '0'}
-            </p>
-          </div>
+        {/* Scrollable Kanban Board */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 pt-4">
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {stages.map((stage) => (
+                    <DroppableStage
+                      key={stage.id}
+                      stage={stage}
+                      leads={groupedLeads[stage.id] || []}
+                      onLeadClick={(leadId: string) => {
+                        setSelectedLeadId(leadId);
+                        setShowLeadModal(true);
+                      }}
+                      t={t}
+                    />
+                  ))}
+                </div>
+
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-blue-500 w-80">
+                      <p className="font-medium text-gray-900">
+                        {leads.find(l => l.id === activeId)?.title || 'Dragging...'}
+                      </p>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
         </div>
-
-        {/* Kanban Board */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {stages.map((stage) => (
-              <DroppableStage
-                key={stage.id}
-                stage={stage}
-                leads={groupedLeads[stage.id] || []}
-                onLeadClick={(leadId: string) => {
-                  setSelectedLeadId(leadId);
-                  setShowLeadModal(true);
-                }}
-                t={t}
-              />
-            ))}
-          </div>
-
-          <DragOverlay>
-            {activeId ? (
-              <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-blue-500 w-80">
-                <p className="font-medium text-gray-900">
-                  {leads.find(l => l.id === activeId)?.title || 'Dragging...'}
-                </p>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
 
         {/* Create Pipeline Modal */}
         {showCreateModal && (
@@ -566,7 +543,7 @@ export default function KanbanPage() {
         )}
 
         {/* Lead Modal */}
-        {selectedLeadId && (
+        {showLeadModal && (
           <LeadModal
             leadId={selectedLeadId}
             isOpen={showLeadModal}

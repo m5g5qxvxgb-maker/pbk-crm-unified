@@ -123,6 +123,17 @@ export const usersAPI = {
   getById: (id: string) => api.get(`/users/${id}`),
 };
 
+// Tasks API
+export const tasksAPI = {
+  getAll: () => api.get('/tasks'),
+  getById: (id: string) => api.get(`/tasks/${id}`),
+  create: (data: any) => api.post('/tasks', data),
+  update: (id: string, data: any) => api.put(`/tasks/${id}`, data),
+  delete: (id: string) => api.delete(`/tasks/${id}`),
+  bulkUpdateStatus: (taskIds: string[], status: string) => 
+    api.post('/tasks/bulk/status', { task_ids: taskIds, status }),
+};
+
 // Settings API
 export const settingsAPI = {
   getAll: () => api.get('/settings'),

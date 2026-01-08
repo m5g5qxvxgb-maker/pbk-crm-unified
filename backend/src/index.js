@@ -7,6 +7,21 @@ const http = require('http');
 const { Server } = require('socket.io');
 const logger = require('./utils/logger');
 
+// Initialize AI services
+const proposalsAIService = require('./services/ai/proposals-ai-service');
+
+// Initialize ProposalsAI service if API key is available
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-placeholder') {
+  try {
+    proposalsAIService.initialize(process.env.OPENAI_API_KEY);
+    logger.info('✅ ProposalsAI service initialized');
+  } catch (error) {
+    logger.warn('⚠️ ProposalsAI service initialization failed:', error.message);
+  }
+} else {
+  logger.warn('⚠️ OPENAI_API_KEY not set - AI proposals will not work');
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -55,6 +70,7 @@ app.use('/api/leads', require('./api/leads'));
 app.use('/api/pipelines', require('./api/pipelines'));
 app.use('/api/tasks', require('./api/tasks'));
 app.use('/api/calls', require('./api/calls'));
+app.use('/api/activities', require('./api/activities'));
 app.use('/api/emails', require('./api/emails'));
 app.use('/api/proposals', require('./api/proposals'));
 app.use('/api/settings', require('./api/settings'));
@@ -63,6 +79,7 @@ app.use('/api/dashboard', require('./api/dashboard'));
 app.use('/api/projects', require('./api/projects'));
 app.use('/api/expenses', require('./api/expenses'));
 app.use('/api/deals', require('./api/deals'));
+app.use('/api/uploads', require('./api/uploads'));
 
 // Internal API for Telegram bot (no auth)
 app.use('/api/bot-internal', require('./api/bot-internal'));

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
-const { cacheMiddleware } = require('../middleware/cache');
+const { cacheMiddleware, invalidateCache } = require('../middleware/cache');
 const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
@@ -29,7 +29,7 @@ router.get('/', authenticateToken, cacheMiddleware(120), async (req, res) => {
       LEFT JOIN users u_assigned ON t.assigned_to = u_assigned.id
       LEFT JOIN users u_created ON t.created_by = u_created.id
       LEFT JOIN leads l ON t.lead_id = l.id
-      LEFT JOIN clients c ON t.client_id = c.id
+      LEFT JOIN clients c ON l.client_id = c.id
       WHERE 1=1
     `;
     
@@ -62,7 +62,7 @@ router.get('/', authenticateToken, cacheMiddleware(120), async (req, res) => {
     }
     
     if (client_id) {
-      query += ` AND t.client_id = $${paramIndex++}`;
+      query += ` AND l.client_id = $${paramIndex++}`;
       params.push(client_id);
     }
     
@@ -127,6 +127,9 @@ router.post('/', authenticateToken, async (req, res) => {
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
+
+    // Helper function to convert empty strings to null for UUID fields
+    const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
     
     const result = await db.query(
       `INSERT INTO tasks 
@@ -135,9 +138,18 @@ router.post('/', authenticateToken, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
-        title, description, status || 'pending', priority || 'medium', due_date,
-        lead_id, client_id, project_id, assigned_to, req.user.id,
-        tags, metadata ? JSON.stringify(metadata) : null
+        title, 
+        description || null, 
+        status || 'pending', 
+        priority || 'medium', 
+        due_date || null,
+        toNullIfEmpty(lead_id), 
+        toNullIfEmpty(client_id), 
+        project_id || null, 
+        toNullIfEmpty(assigned_to), 
+        req.user.id,
+        tags || null, 
+        metadata ? JSON.stringify(metadata) : null
       ]
     );
     
@@ -162,6 +174,8 @@ router.post('/', authenticateToken, async (req, res) => {
       LEFT JOIN users u_created ON t.created_by = u_created.id
       WHERE t.id = $1
     `, [result.rows[0].id]);
+    
+    await invalidateCache('/api/tasks');
     
     res.json({ success: true, data: fullResult.rows[0] });
   } catch (error) {
@@ -234,6 +248,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       WHERE t.id = $1
     `, [req.params.id]);
     
+    await invalidateCache('/api/tasks');
+    
     res.json({ success: true, data: fullResult.rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -251,6 +267,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Task not found' });
     }
+    
+    await invalidateCache('/api/tasks');
     
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {

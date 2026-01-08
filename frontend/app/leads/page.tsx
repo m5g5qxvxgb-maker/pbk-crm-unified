@@ -152,7 +152,7 @@ export default function LeadsPage() {
                 <div className="text-right ml-4">
                   {lead.value && (
                     <div className="font-semibold text-green-600">
-                      ${parseFloat(lead.value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      {parseFloat(lead.value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
                     </div>
                   )}
                   {lead.closed_at && (

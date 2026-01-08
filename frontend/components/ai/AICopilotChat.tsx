@@ -79,7 +79,7 @@ export default function AICopilotChat({ onActionComplete }: { onActionComplete?:
           const resultData = data.result?.data || data.data;
           
           if (data.action === 'create_lead' && resultData) {
-            assistantContent = `✅ Готово! Лид "${resultData.title}" создан успешно\n\nСтоимость: ${resultData.value} ${resultData.currency}\nВероятность: ${resultData.probability}%`;
+            assistantContent = `✅ Готово! Лид "${resultData.title}" создан успешно\n\nСтоимость: ${resultData.value} zł\nВероятность: ${resultData.probability}%`;
           } else if (data.action === 'create_task' && resultData) {
             assistantContent = `✅ Готово! Задача "${resultData.title}" создана`;
           } else if (data.action === 'create_client' && resultData) {

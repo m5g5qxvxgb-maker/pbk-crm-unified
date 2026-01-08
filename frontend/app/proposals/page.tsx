@@ -87,7 +87,7 @@ export default function ProposalsPage() {
               </p>
               {proposal.amount && (
                 <p style={{color: '#10b981', fontWeight: '600', marginBottom: '4px'}}>
-                  Amount: ${proposal.amount.toLocaleString()}
+                  Amount: {proposal.amount.toLocaleString()} zł
                 </p>
               )}
               <p style={{color: '#6b7280'}}>

@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../database/db');
 const retellService = require('../services/retell/service');
 const { authenticateToken } = require('../middleware/auth');
-const { cacheMiddleware } = require('../middleware/cache');
+const { cacheMiddleware, invalidateCache } = require('../middleware/cache');
 const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
@@ -75,26 +75,41 @@ router.post('/', authenticateToken, async (req, res) => {
       client_id,
       date,
       time,
-      duration = 15,
+      duration,
       status = 'pending',
       notes,
       phone_number,
-      direction = 'outbound'
+      direction = 'outbound',
+      scheduled_at
     } = req.body;
 
-    // Combine date and time into scheduled_at timestamp
-    let scheduled_at = null;
-    if (date && time) {
-      scheduled_at = new Date(`${date}T${time}`);
+    // Helper function to convert empty strings to null for UUID fields
+    const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
+
+    // Handle scheduled_at: either from direct field or combine date+time
+    let finalScheduledAt = scheduled_at;
+    if (!finalScheduledAt && date && time) {
+      finalScheduledAt = new Date(`${date}T${time}`);
     }
 
     const result = await db.query(
       `INSERT INTO calls 
-      (lead_id, client_id, phone_number, status, direction, duration, started_at, transcript, created_at, updated_at)
+      (lead_id, client_id, phone_number, status, direction, duration, scheduled_at, notes, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *`,
-      [lead_id, client_id, phone_number || '', status, direction, duration, scheduled_at, notes || '']
+      [
+        toNullIfEmpty(lead_id), 
+        toNullIfEmpty(client_id), 
+        phone_number || '', 
+        status, 
+        direction, 
+        duration, 
+        finalScheduledAt || null, 
+        notes || ''
+      ]
     );
+
+    await invalidateCache('/api/calls');
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
