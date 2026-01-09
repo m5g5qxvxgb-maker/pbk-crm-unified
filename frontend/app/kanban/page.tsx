@@ -54,16 +54,6 @@ function SortableCard({ lead, onClick, isSelected, onSelectToggle }: any) {
         isSelected ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200 bg-white'
       }`}
     >
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`p-4 rounded-lg shadow-sm mb-3 cursor-move hover:shadow-md transition ${
-        isSelected ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200 bg-white'
-      }`}
-    >
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
