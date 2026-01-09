@@ -28,8 +28,7 @@ import {
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-// Sortable Card Component
-function SortableCard({ lead, onClick }: any) {
+function SortableCard({ lead, onClick, isSelected, onSelectToggle }: any) {
   const {
     attributes,
     listeners,
@@ -51,32 +50,57 @@ function SortableCard({ lead, onClick }: any) {
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3 cursor-move hover:shadow-md transition"
+      className={`p-4 rounded-lg shadow-sm mb-3 cursor-move hover:shadow-md transition ${
+        isSelected ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200 bg-white'
+      }`}
     >
-      <h3 
-        className="font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-      >
-        {lead.title}
-      </h3>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-green-600 font-semibold">
-          {(parseFloat(lead.value) || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
-        </span>
-        <span className="text-gray-500">{lead.probability || 50}%</span>
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`p-4 rounded-lg shadow-sm mb-3 cursor-move hover:shadow-md transition ${
+        isSelected ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200 bg-white'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onSelectToggle(lead.id);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 w-4 h-4 cursor-pointer"
+        />
+        <div className="flex-1">
+          <h3 
+            className="font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            {lead.title}
+          </h3>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-green-600 font-semibold">
+              {(parseFloat(lead.value) || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
+            </span>
+            <span className="text-gray-500">{lead.probability || 50}%</span>
+          </div>
+          {lead.client_name && (
+            <p className="text-xs text-gray-500 mt-2">👤 {lead.client_name}</p>
+          )}
+        </div>
       </div>
-      {lead.client_name && (
-        <p className="text-xs text-gray-500 mt-2">👤 {lead.client_name}</p>
-      )}
     </div>
   );
 }
 
-// Droppable Stage Column
-function DroppableStage({ stage, leads, onLeadClick, t }: any) {
+function DroppableStage({ stage, leads, onLeadClick, selectedLeads, onSelectToggle, t }: any) {
   const { setNodeRef } = useDroppable({
     id: stage.id,
   });
@@ -114,6 +138,8 @@ function DroppableStage({ stage, leads, onLeadClick, t }: any) {
               key={lead.id}
               lead={lead}
               onClick={() => onLeadClick(lead.id)}
+              isSelected={selectedLeads.includes(lead.id)}
+              onSelectToggle={onSelectToggle}
             />
           ))}
           {leads.length === 0 && (
@@ -140,10 +166,103 @@ export default function KanbanPage() {
   const [newPipelineName, setNewPipelineName] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   
-  // Lead Modal
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
+
+  const handleSelectToggle = (leadId: string) => {
+    setSelectedLeads(prev =>
+      prev.includes(leadId)
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedLeads(filteredLeads.map(lead => lead.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedLeads([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedLeads.length} лид(ов)?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const leadId of selectedLeads) {
+      try {
+        const response = await fetch(getApiUrl(`/api/leads/${leadId}`), {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`✅ Удалено: ${successCount} лид(ов)`);
+    }
+    if (errorCount > 0) {
+      toast.error(`❌ Ошибка при удалении: ${errorCount} лид(ов)`);
+    }
+
+    setSelectedLeads([]);
+    loadData();
+  };
+
+  const handleBulkMove = async (targetStageId: string) => {
+    if (!targetStageId) return;
+
+    const token = localStorage.getItem('token');
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const leadId of selectedLeads) {
+      try {
+        const response = await fetch(getApiUrl(`/api/leads/${leadId}/stage`), {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ stage_id: targetStageId })
+        });
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    const stage = stages.find(s => s.id === targetStageId);
+    if (successCount > 0) {
+      toast.success(`✅ Перемещено ${successCount} лид(ов) в "${stage?.name}"`);
+    }
+    if (errorCount > 0) {
+      toast.error(`❌ Ошибка при перемещении: ${errorCount} лид(ов)`);
+    }
+
+    setSelectedLeads([]);
+    loadData();
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -454,6 +573,51 @@ export default function KanbanPage() {
           </div>
         </div>
 
+        {selectedLeads.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-6 py-3 mb-6">
+            <div className="flex items-center justify-start gap-6">
+              <span className="text-sm font-medium text-blue-900">
+                Выбрано: {selectedLeads.length}
+              </span>
+              <button
+                onClick={handleDeselectAll}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Снять выделение
+              </button>
+              <select
+                onChange={(e) => handleBulkMove(e.target.value)}
+                value=""
+                className="px-3 py-1.5 border border-blue-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Переместить в...</option>
+                {stages.map(stage => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+              >
+                🗑️ Удалить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredLeads.length > 0 && selectedLeads.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-6 py-3 mb-6">
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Выбрать все ({filteredLeads.length})
+            </button>
+          </div>
+        )}
+
         {/* Scrollable Kanban Board */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 pt-4">
@@ -474,6 +638,8 @@ export default function KanbanPage() {
                         setSelectedLeadId(leadId);
                         setShowLeadModal(true);
                       }}
+                      selectedLeads={selectedLeads}
+                      onSelectToggle={handleSelectToggle}
                       t={t}
                     />
                   ))}

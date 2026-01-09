@@ -15,6 +15,60 @@ export default function LeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+
+  const handleSelectToggle = (leadId: string) => {
+    setSelectedLeads(prev =>
+      prev.includes(leadId)
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedLeads(filteredLeads.map(lead => lead.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedLeads([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedLeads.length} лид(ов)?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const leadId of selectedLeads) {
+      try {
+        const response = await fetch(getApiUrl(`/api/leads/${leadId}`), {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`✅ Удалено: ${successCount} лид(ов)`);
+    }
+    if (errorCount > 0) {
+      toast.error(`❌ Ошибка при удалении: ${errorCount} лид(ов)`);
+    }
+
+    setSelectedLeads([]);
+    loadLeads();
+  };
 
   useEffect(() => {
     loadLeads();
@@ -119,6 +173,39 @@ export default function LeadsPage() {
           </select>
         </div>
 
+        {selectedLeads.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-6 py-3 mb-6">
+            <div className="flex items-center justify-start gap-6">
+              <span className="text-sm font-medium text-blue-900">
+                Выбрано: {selectedLeads.length}
+              </span>
+              <button
+                onClick={handleDeselectAll}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Снять выделение
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+              >
+                🗑️ Удалить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredLeads.length > 0 && selectedLeads.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-6 py-3 mb-6">
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Выбрать все ({filteredLeads.length})
+            </button>
+          </div>
+        )}
+
         {/* Leads List */}
         {filteredLeads.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -129,35 +216,50 @@ export default function LeadsPage() {
             {filteredLeads.map((lead) => (
               <div 
                 key={lead.id}
-                className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 flex items-center justify-between"
-                onClick={() => handleOpenLead(lead.id)}
+                className={`p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border-2 ${
+                  selectedLeads.includes(lead.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
+                }`}
               >
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 truncate">
-                    {lead.title}
-                  </h3>
-                  <div className="flex gap-4 mt-2 text-sm text-gray-600">
-                    {lead.client_name && (
-                      <div>👤 {lead.client_name}</div>
-                    )}
-                    {lead.stage_name && (
-                      <div>📍 {lead.stage_name}</div>
-                    )}
-                    {lead.probability && (
-                      <div>📊 {lead.probability}%</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-right ml-4">
-                  {lead.value && (
-                    <div className="font-semibold text-green-600">
-                      {parseFloat(lead.value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedLeads.includes(lead.id)}
+                    onChange={() => handleSelectToggle(lead.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <div 
+                    className="flex-1 flex items-center justify-between cursor-pointer"
+                    onClick={() => handleOpenLead(lead.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {lead.title}
+                      </h3>
+                      <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                        {lead.client_name && (
+                          <div>👤 {lead.client_name}</div>
+                        )}
+                        {lead.stage_name && (
+                          <div>📍 {lead.stage_name}</div>
+                        )}
+                        {lead.probability && (
+                          <div>📊 {lead.probability}%</div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {lead.closed_at && (
-                    <div className="text-xs text-gray-500 mt-1">✓ Closed</div>
-                  )}
+
+                    <div className="text-right ml-4">
+                      {lead.value && (
+                        <div className="font-semibold text-green-600">
+                          {parseFloat(lead.value).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} zł
+                        </div>
+                      )}
+                      {lead.closed_at && (
+                        <div className="text-xs text-gray-500 mt-1">✓ Closed</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
