@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 
-/**
- * AI Integration Test Script
- * Tests OpenAI and OpenRouter connectivity
- */
-
 const axios = require('axios');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const colors = {
   reset: '\x1b[0m',
