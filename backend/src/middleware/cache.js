@@ -100,9 +100,22 @@ const cacheMiddleware = (ttl = 300, keyGenerator = null) => {
  */
 const invalidateCache = async (pattern) => {
   try {
-    // For simple cache, we'll clear specific keys
-    // In production with Redis, use SCAN with pattern matching
     logger.info(`Cache invalidation requested for pattern: ${pattern}`);
+    
+    // Delete all keys matching the pattern
+    const keysToDelete = [];
+    for (const key of cache.cache.keys()) {
+      if (key.includes(pattern)) {
+        keysToDelete.push(key);
+      }
+    }
+    
+    for (const key of keysToDelete) {
+      cache.cache.delete(key);
+      cache.ttls.delete(key);
+    }
+    
+    logger.info(`Invalidated ${keysToDelete.length} cache entries for pattern: ${pattern}`);
   } catch (error) {
     logger.error('Cache invalidation error:', error);
   }

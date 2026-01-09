@@ -22,11 +22,12 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
   const [relatedLeads, setRelatedLeads] = useState<any[]>([]);
   const [relatedTasks, setRelatedTasks] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
+    company_name: '',
+    contact_person: '',
+    actual_company_name: '',
     email: '',
     phone: '',
-    company: '',
-    position: '',
+    website: '',
     address: '',
     city: '',
     country: '',
@@ -54,11 +55,12 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
       if (data.success) {
         setClient(data.data);
         setFormData({
-          name: data.data.name || '',
+          company_name: data.data.company_name || '',
+          contact_person: data.data.contact_person || '',
+          actual_company_name: data.data.actual_company_name || '',
           email: data.data.email || '',
           phone: data.data.phone || '',
-          company: data.data.company || '',
-          position: data.data.position || '',
+          website: data.data.website || '',
           address: data.data.address || '',
           city: data.data.city || '',
           country: data.data.country || '',
@@ -172,6 +174,18 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
+              <p className="text-sm text-gray-500">Имя клиента</p>
+              <p className="text-lg text-gray-900">{client.company_name || '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Должность</p>
+              <p className="text-lg text-gray-900">{client.contact_person || '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Название компании</p>
+              <p className="text-lg text-gray-900">{client.actual_company_name || '-'}</p>
+            </div>
+            <div>
               <p className="text-sm text-gray-500">Email</p>
               <p className="text-lg text-gray-900">{client.email || '-'}</p>
             </div>
@@ -180,12 +194,8 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
               <p className="text-lg text-gray-900">{client.phone || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Компания</p>
-              <p className="text-lg text-gray-900">{client.company || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Должность</p>
-              <p className="text-lg text-gray-900">{client.position || '-'}</p>
+              <p className="text-sm text-gray-500">Веб-сайт</p>
+              <p className="text-lg text-gray-900">{client.website || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Город</p>
@@ -199,7 +209,7 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
 
           {client.address && (
             <div>
-              <p className="text-sm text-gray-500">Адрес</p>
+              <p className="text-sm text-gray-500">Адрес клиента</p>
               <p className="text-lg text-gray-900">{client.address}</p>
             </div>
           )}
@@ -234,14 +244,36 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Имя *
+              Имя клиента *
             </label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.company_name}
+              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Должность
+            </label>
+            <input
+              type="text"
+              value={formData.contact_person}
+              onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Название компании
+            </label>
+            <input
+              type="text"
+              value={formData.actual_company_name}
+              onChange={(e) => setFormData({ ...formData, actual_company_name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
@@ -268,23 +300,12 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Компания
+              Веб-сайт
             </label>
             <input
-              type="text"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Должность
-            </label>
-            <input
-              type="text"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              type="url"
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -310,6 +331,18 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Адрес клиента
+          </label>
+          <input
+            type="text"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
 
         <div>
@@ -402,7 +435,13 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
         ) : (
           <div className="space-y-3">
             {relatedLeads.map((lead) => (
-              <div key={lead.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div 
+                key={lead.id} 
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:bg-blue-50"
+                onClick={() => {
+                  window.location.href = `/kanban?leadId=${lead.id}`;
+                }}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900">{lead.title}</h4>
@@ -414,7 +453,7 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-semibold text-green-600">
-                      ${lead.value ? lead.value.toLocaleString() : '0'}
+                      {lead.value ? lead.value.toLocaleString() : '0'} zł
                     </p>
                     {lead.closed_at && (
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Закрыт</span>
@@ -507,11 +546,17 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">\n        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">
-            {client?.name || 'Детали клиента'}
+            {client?.company_name || 'Детали клиента'}
           </h2>
           <button
             onClick={onClose}

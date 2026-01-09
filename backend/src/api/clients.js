@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
-const { cacheMiddleware } = require('../middleware/cache');
+const { cacheMiddleware, invalidateCache } = require('../middleware/cache');
 const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
@@ -68,26 +68,27 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
-      company_name, contact_person, email, phone, website,
+      company_name, contact_person, actual_company_name, email, phone, website,
       address, city, country, notes, tags, custom_fields, assigned_to
     } = req.body;
 
     const result = await db.query(
       `INSERT INTO clients 
-       (company_name, contact_person, email, phone, website, address, city, country,
+       (company_name, contact_person, actual_company_name, email, phone, website, address, city, country,
         notes, tags, custom_fields, assigned_to, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
-      [company_name, contact_person, email, phone, website, address, city, country,
+      [company_name, contact_person, actual_company_name, email, phone, website, address, city, country,
        notes, tags, custom_fields ? JSON.stringify(custom_fields) : null, assigned_to, req.user.id]
     );
 
-    // Log activity
     await db.query(
       `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
        VALUES ('client', $1, 'created', 'Client created', $2)`,
       [result.rows[0].id, req.user.id]
     );
+
+    await invalidateCache('/api/clients');
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -102,7 +103,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const {
-      company_name, contact_person, email, phone, website,
+      company_name, contact_person, actual_company_name, email, phone, website,
       address, city, country, notes, tags, custom_fields, assigned_to
     } = req.body;
 
@@ -110,19 +111,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
       `UPDATE clients 
        SET company_name = COALESCE($1, company_name),
            contact_person = COALESCE($2, contact_person),
-           email = COALESCE($3, email),
-           phone = COALESCE($4, phone),
-           website = COALESCE($5, website),
-           address = COALESCE($6, address),
-           city = COALESCE($7, city),
-           country = COALESCE($8, country),
-           notes = COALESCE($9, notes),
-           tags = COALESCE($10, tags),
-           custom_fields = COALESCE($11, custom_fields),
-           assigned_to = COALESCE($12, assigned_to)
-       WHERE id = $13
+           actual_company_name = COALESCE($3, actual_company_name),
+           email = COALESCE($4, email),
+           phone = COALESCE($5, phone),
+           website = COALESCE($6, website),
+           address = COALESCE($7, address),
+           city = COALESCE($8, city),
+           country = COALESCE($9, country),
+           notes = COALESCE($10, notes),
+           tags = COALESCE($11, tags),
+           custom_fields = COALESCE($12, custom_fields),
+           assigned_to = COALESCE($13, assigned_to)
+       WHERE id = $14
        RETURNING *`,
-      [company_name, contact_person, email, phone, website, address, city, country,
+      [company_name, contact_person, actual_company_name, email, phone, website, address, city, country,
        notes, tags, custom_fields ? JSON.stringify(custom_fields) : null, assigned_to, req.params.id]
     );
 
@@ -130,12 +132,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Client not found' });
     }
 
-    // Log activity
     await db.query(
       `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
        VALUES ('client', $1, 'updated', 'Client updated', $2)`,
       [req.params.id, req.user.id]
     );
+
+    await invalidateCache('/api/clients');
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -154,6 +157,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Client not found' });
     }
+
+    await invalidateCache('/api/clients');
 
     res.json({ success: true, message: 'Client deleted' });
   } catch (error) {

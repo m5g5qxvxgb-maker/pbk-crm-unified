@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ClientModal from '@/components/modals/ClientModal';
 import { getApiUrl } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
@@ -12,6 +13,60 @@ export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+
+  const handleSelectToggle = (clientId: string) => {
+    setSelectedClients(prev =>
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedClients(filteredClients.map(client => client.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedClients([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedClients.length} клиент(ов)?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const clientId of selectedClients) {
+      try {
+        const response = await fetch(getApiUrl(`/api/clients/${clientId}`), {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`✅ Удалено: ${successCount} клиент(ов)`);
+    }
+    if (errorCount > 0) {
+      toast.error(`❌ Ошибка при удалении: ${errorCount} клиент(ов)`);
+    }
+
+    setSelectedClients([]);
+    loadClients();
+  };
 
   const loadClients = () => {
     const token = localStorage.getItem('token');
@@ -94,6 +149,39 @@ export default function ClientsPage() {
           />
         </div>
 
+        {selectedClients.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-6 py-3 mb-6">
+            <div className="flex items-center justify-start gap-6">
+              <span className="text-sm font-medium text-blue-900">
+                Выбрано: {selectedClients.length}
+              </span>
+              <button
+                onClick={handleDeselectAll}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Снять выделение
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+              >
+                🗑️ Удалить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredClients.length > 0 && selectedClients.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-6 py-3 mb-6">
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Выбрать все ({filteredClients.length})
+            </button>
+          </div>
+        )}
+
         {filteredClients.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             {searchTerm ? 'No clients found' : 'No clients yet. Add your first client!'}
@@ -103,38 +191,49 @@ export default function ClientsPage() {
             {filteredClients.map((client) => (
               <div 
                 key={client.id}
-                className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                className={`p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border-2 ${
+                  selectedClients.includes(client.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
+                }`}
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      {client.company_name}
-                    </h3>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {client.contact_person && (
-                        <div>👤 {client.contact_person}</div>
-                      )}
-                      {client.email && (
-                        <div>📧 {client.email}</div>
-                      )}
-                      {client.phone && (
-                        <div>📞 {client.phone}</div>
-                      )}
-                      {client.city && (
-                        <div>📍 {client.city}{client.country ? `, ${client.country}` : ''}</div>
-                      )}
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedClients.includes(client.id)}
+                    onChange={() => handleSelectToggle(client.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 w-4 h-4 cursor-pointer"
+                  />
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">
+                        {client.company_name}
+                      </h3>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        {client.contact_person && (
+                          <div>👤 {client.contact_person}</div>
+                        )}
+                        {client.email && (
+                          <div>📧 {client.email}</div>
+                        )}
+                        {client.phone && (
+                          <div>📞 {client.phone}</div>
+                        )}
+                        {client.city && (
+                          <div>📍 {client.city}{client.country ? `, ${client.country}` : ''}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <button 
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      onClick={() => {
-                        setSelectedClientId(client.id);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      View Details
-                    </button>
+                    <div className="flex items-center justify-end">
+                      <button 
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        onClick={() => {
+                          setSelectedClientId(client.id);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

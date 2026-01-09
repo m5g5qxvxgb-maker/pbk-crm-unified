@@ -19,17 +19,14 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
   const [formData, setFormData] = useState({
     company_name: client?.company_name || '',
     contact_person: client?.contact_person || '',
+    actual_company_name: client?.actual_company_name || '',
     email: client?.email || '',
     phone: client?.phone || '',
     address: client?.address || '',
     city: client?.city || '',
-    state: client?.state || '',
-    zip: client?.zip || '',
     country: client?.country || '',
     website: client?.website || '',
     notes: client?.notes || '',
-    type: client?.type || 'client',
-    segment: client?.segment || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -68,22 +65,30 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Company Name *"
+              label="Имя клиента *"
               name="company_name"
-              placeholder="Company name"
+              placeholder="Имя клиента"
               value={formData.company_name}
               onChange={handleChange}
               required
             />
 
             <Input
-              label="Contact Person"
+              label="Должность"
               name="contact_person"
-              placeholder="Contact person name"
+              placeholder="Должность"
               value={formData.contact_person}
               onChange={handleChange}
             />
           </div>
+
+          <Input
+            label="Название компании"
+            name="actual_company_name"
+            placeholder="Название компании (если есть)"
+            value={formData.actual_company_name}
+            onChange={handleChange}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -96,7 +101,7 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
             />
 
             <Input
-              label="Phone"
+              label="Телефон"
               name="phone"
               type="tel"
               placeholder="+1234567890"
@@ -106,69 +111,44 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
           </div>
 
           <Input
-            label="Address"
+            label="Адрес клиента"
             name="address"
-            placeholder="Full address"
+            placeholder="Полный адрес"
             value={formData.address}
             onChange={handleChange}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Website"
+              label="Веб-сайт"
               name="website"
               type="url"
               placeholder="https://example.com"
               value={formData.website}
               onChange={handleChange}
             />
-              label="Website"
-              name="website"
-              type="url"
-              placeholder="https://example.com"
-              value={formData.website}
+
+            <Input
+              label="Город"
+              name="city"
+              placeholder="Город"
+              value={formData.city}
               onChange={handleChange}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
-            </label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="client">Client</option>
-              <option value="partner">Partner</option>
-              <option value="vendor">Vendor</option>
-              <option value="prospect">Prospect</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Segment</label>
-            <select
-              name="segment"
-              value={formData.segment}
-              onChange={handleChange}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select segment</option>
-              <option value="VIP">👑 VIP</option>
-              <option value="Regular">⭐ Regular</option>
-              <option value="New">🆕 New</option>
-              <option value="Churned">⚠️ Churned</option>
-              <option value="Potential">💎 Potential</option>
-            </select>
-          </div>
+          <Input
+            label="Страна"
+            name="country"
+            placeholder="Страна"
+            value={formData.country}
+            onChange={handleChange}
+          />
 
           <Textarea
-            label="Notes"
+            label="Заметки"
             name="notes"
-            placeholder="Additional notes..."
+            placeholder="Дополнительные заметки..."
             rows={3}
             value={formData.notes}
             onChange={handleChange}
@@ -179,16 +159,16 @@ export default function ClientForm({ client, onClose, onSuccess }: ClientFormPro
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
-        </form>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={loading}>
-            {client ? 'Update' : 'Create'}
-          </Button>
-        </div>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" loading={loading}>
+              {client ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

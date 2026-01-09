@@ -165,20 +165,20 @@ export default function CallRequestForm({ onClose, onSuccess }: CallRequestFormP
               ℹ️ This call request will be sent for approval before being executed by Retell AI.
             </p>
           </div>
-        </form>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            loading={loading}
-          >
-            Create Request
-          </Button>
-        </div>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              loading={loading}
+            >
+              Create Request
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

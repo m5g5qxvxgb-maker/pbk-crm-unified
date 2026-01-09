@@ -120,7 +120,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       fontSize: '14px',
     },
     content: {
-      padding: '32px',
+      padding: pathname === '/kanban' ? '0' : '32px',
+      height: pathname === '/kanban' ? 'calc(100vh - 65px)' : 'auto',
+      overflow: pathname === '/kanban' ? 'hidden' : 'visible',
     },
   };
 

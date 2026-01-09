@@ -124,13 +124,12 @@ export default function LeadForm({ lead, onClose, onSuccess }: LeadFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pipeline *
+                Pipeline
               </label>
               <select
                 name="pipeline_id"
                 value={formData.pipeline_id}
                 onChange={handleChange}
-                required
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select pipeline</option>
@@ -144,13 +143,12 @@ export default function LeadForm({ lead, onClose, onSuccess }: LeadFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Stage *
+                Stage
               </label>
               <select
                 name="stage_id"
                 value={formData.stage_id}
                 onChange={handleChange}
-                required
                 disabled={!formData.pipeline_id}
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               >
@@ -185,7 +183,7 @@ export default function LeadForm({ lead, onClose, onSuccess }: LeadFormProps) {
             </div>
 
             <Input
-              label="Value ($)"
+              label="Wartość (PLN)"
               name="value"
               type="number"
               step="0.01"
@@ -229,16 +227,16 @@ export default function LeadForm({ lead, onClose, onSuccess }: LeadFormProps) {
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
-        </form>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={loading}>
-            {lead ? 'Update' : 'Create'}
-          </Button>
-        </div>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" loading={loading}>
+              {lead ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

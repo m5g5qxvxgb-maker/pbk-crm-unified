@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
+const proposalsAIService = require('../services/ai/proposals-ai-service');
+const logger = require('../utils/logger');
 
 /**
  * GET /api/proposals
@@ -129,6 +131,203 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     res.json({ success: true, message: 'Proposal deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/proposals/generate
+ * Generate new proposal using AI
+ */
+router.post('/generate', authenticateToken, async (req, res) => {
+  try {
+    const {
+      client_id,
+      lead_id,
+      clientName,
+      clientAddress,
+      apartmentInfo,
+      servicesNeeded,
+      budget,
+      additionalNotes,
+    } = req.body;
+
+    // Walidacja wymaganych pól
+    if (!clientName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Client name is required',
+      });
+    }
+
+    // Przygotowanie danych do AI
+    const proposalData = {
+      clientName,
+      clientAddress,
+      apartmentInfo,
+      servicesNeeded,
+      budget,
+      additionalNotes,
+    };
+
+    // Jeśli podano lead_id, pobierz dodatkowe dane z leadu
+    if (lead_id) {
+      const leadResult = await db.query(
+        'SELECT title, description, value, custom_fields FROM leads WHERE id = $1',
+        [lead_id]
+      );
+
+      if (leadResult.rows.length > 0) {
+        const lead = leadResult.rows[0];
+        proposalData.leadDescription = lead.description;
+        if (!budget && lead.value) {
+          proposalData.budget = lead.value;
+        }
+      }
+    }
+
+    logger.info('Generating AI proposal', {
+      userId: req.user.id,
+      clientName,
+      leadId: lead_id,
+    });
+
+    // Generowanie oferty przez AI
+    const aiResult = await proposalsAIService.generateProposal(proposalData);
+
+    if (!aiResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: aiResult.error,
+        message: aiResult.fallbackMessage,
+      });
+    }
+
+    // Zapisanie wygenerowanej oferty w bazie
+    const title = `Oferta dla ${clientName} - ${new Date().toLocaleDateString('pl-PL')}`;
+    
+    const insertResult = await db.query(
+      `INSERT INTO ai_proposals (
+        client_id, lead_id, title, input_data, generated_content,
+        template_used, openai_model, tokens_used, status, created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+      [
+        client_id || null,
+        lead_id || null,
+        title,
+        JSON.stringify(proposalData),
+        aiResult.content,
+        'ai-generated',
+        aiResult.usage.model,
+        aiResult.usage.tokens,
+        'draft',
+        req.user.id,
+      ]
+    );
+
+    logger.info('AI proposal created successfully', {
+      proposalId: insertResult.rows[0].id,
+      tokensUsed: aiResult.usage.tokens,
+    });
+
+    res.json({
+      success: true,
+      data: insertResult.rows[0],
+      usage: aiResult.usage,
+    });
+  } catch (error) {
+    logger.error('Error generating proposal', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/proposals/:id/regenerate
+ * Regenerate proposal with user feedback
+ */
+router.post('/:id/regenerate', authenticateToken, async (req, res) => {
+  try {
+    const { feedback } = req.body;
+
+    if (!feedback) {
+      return res.status(400).json({
+        success: false,
+        error: 'Feedback is required for regeneration',
+      });
+    }
+
+    // Pobranie oryginalnej oferty
+    const proposalResult = await db.query(
+      'SELECT * FROM ai_proposals WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (proposalResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
+
+    const proposal = proposalResult.rows[0];
+
+    logger.info('Regenerating AI proposal', {
+      proposalId: req.params.id,
+      userId: req.user.id,
+    });
+
+    // Regeneracja przez AI
+    const aiResult = await proposalsAIService.regenerateProposal(
+      proposal.generated_content,
+      feedback
+    );
+
+    if (!aiResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: aiResult.error,
+      });
+    }
+
+    // Aktualizacja oferty
+    const updateResult = await db.query(
+      `UPDATE ai_proposals 
+       SET generated_content = $1,
+           tokens_used = tokens_used + $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [aiResult.content, aiResult.usage.tokens, req.params.id]
+    );
+
+    logger.info('AI proposal regenerated successfully', {
+      proposalId: req.params.id,
+      tokensUsed: aiResult.usage.tokens,
+    });
+
+    res.json({
+      success: true,
+      data: updateResult.rows[0],
+      usage: aiResult.usage,
+    });
+  } catch (error) {
+    logger.error('Error regenerating proposal', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/proposals/services/available
+ * Get available services for proposal generation
+ */
+router.get('/services/available', authenticateToken, async (req, res) => {
+  try {
+    const services = proposalsAIService.getAvailableServices();
+    
+    res.json({
+      success: true,
+      data: services,
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

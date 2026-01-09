@@ -15,8 +15,8 @@ export function formatDate(date: string | Date): string {
   });
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: string = 'PLN'): string {
+  return new Intl.NumberFormat('pl-PL', {
     style: 'currency',
     currency,
   }).format(amount);

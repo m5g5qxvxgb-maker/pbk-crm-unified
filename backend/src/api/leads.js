@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const { authenticateToken } = require('../middleware/auth');
-const { cacheMiddleware } = require('../middleware/cache');
+const { cacheMiddleware, invalidateCache } = require('../middleware/cache');
 const { paginatedQuery } = require('../utils/queryHelpers');
 
 /**
@@ -20,6 +20,7 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
       SELECT l.id, l.title, l.description, l.value, l.currency, l.probability,
              l.expected_close_date, l.source, l.tags,
              l.pipeline_id, l.stage_id, l.client_id, l.assigned_to,
+             l.contact_name, l.contact_email, l.contact_phone, l.contact_position,
              p.name as pipeline_name, ps.name as stage_name, ps.color as stage_color,
              c.company_name, c.contact_person,
              u.first_name || ' ' || u.last_name as assigned_to_name,
@@ -105,19 +106,24 @@ router.post('/', authenticateToken, async (req, res) => {
     const {
       pipeline_id, stage_id, client_id, title, description,
       value, currency, probability, expected_close_date,
-      source, tags, custom_fields, assigned_to
+      source, tags, custom_fields, assigned_to,
+      contact_name, contact_email, contact_phone, contact_position,
+      company_name, object_address
     } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
 
-    // If no stage specified, get first stage of pipeline
-    let finalStageId = stage_id;
-    if (pipeline_id && !stage_id) {
+    const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
+
+    let finalPipelineId = toNullIfEmpty(pipeline_id);
+    let finalStageId = toNullIfEmpty(stage_id);
+    
+    if (finalPipelineId && !finalStageId) {
       const stageResult = await db.query(
         'SELECT id FROM pipeline_stages WHERE pipeline_id = $1 ORDER BY sort_order LIMIT 1',
-        [pipeline_id]
+        [finalPipelineId]
       );
       if (stageResult.rows.length > 0) {
         finalStageId = stageResult.rows[0].id;
@@ -127,12 +133,32 @@ router.post('/', authenticateToken, async (req, res) => {
     const result = await db.query(
       `INSERT INTO leads 
        (pipeline_id, stage_id, client_id, title, description, value, currency,
-        probability, expected_close_date, source, tags, custom_fields, assigned_to, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        probability, expected_close_date, source, tags, custom_fields, assigned_to, created_by,
+        contact_name, contact_email, contact_phone, contact_position, company_name, object_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
        RETURNING *`,
-      [pipeline_id, finalStageId, client_id, title, description, value, currency || 'USD',
-       probability || 50, expected_close_date, source, tags, 
-       custom_fields ? JSON.stringify(custom_fields) : null, assigned_to, req.user.id]
+      [
+        finalPipelineId, 
+        finalStageId, 
+        toNullIfEmpty(client_id), 
+        title, 
+        description || null, 
+        value || null, 
+        currency || 'PLN',
+        probability || 50, 
+        expected_close_date || null, 
+        source || null, 
+        tags || null, 
+        custom_fields ? JSON.stringify(custom_fields) : null, 
+        toNullIfEmpty(assigned_to), 
+        req.user.id,
+        contact_name || null, 
+        contact_email || null, 
+        contact_phone || null, 
+        contact_position || null,
+        company_name || null,
+        object_address || null
+      ]
     );
 
     // Log activity
@@ -148,6 +174,8 @@ router.post('/', authenticateToken, async (req, res) => {
       io.emit('lead_created', result.rows[0]);
     }
 
+    await invalidateCache('/api/leads');
+
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -162,37 +190,72 @@ router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const {
       title, description, value, currency, probability,
-      expected_close_date, source, tags, custom_fields, assigned_to
+      expected_close_date, source, tags, custom_fields, assigned_to,
+      pipeline_id, stage_id, client_id,
+      contact_name, contact_email, contact_phone, contact_position,
+      company_name, object_address
     } = req.body;
+
+    const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
 
     const result = await db.query(
       `UPDATE leads 
-       SET title = COALESCE($1, title),
-           description = COALESCE($2, description),
-           value = COALESCE($3, value),
-           currency = COALESCE($4, currency),
-           probability = COALESCE($5, probability),
-           expected_close_date = COALESCE($6, expected_close_date),
-           source = COALESCE($7, source),
-           tags = COALESCE($8, tags),
-           custom_fields = COALESCE($9, custom_fields),
-           assigned_to = COALESCE($10, assigned_to)
-       WHERE id = $11
+       SET title = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE title END,
+           description = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE description END,
+           value = CASE WHEN $3::numeric IS NOT NULL THEN $3 ELSE value END,
+           currency = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE currency END,
+           probability = CASE WHEN $5::integer IS NOT NULL THEN $5 ELSE probability END,
+           expected_close_date = CASE WHEN $6::timestamp IS NOT NULL THEN $6 ELSE expected_close_date END,
+           source = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE source END,
+           tags = CASE WHEN $8::text[] IS NOT NULL THEN $8 ELSE tags END,
+           custom_fields = CASE WHEN $9::jsonb IS NOT NULL THEN $9 ELSE custom_fields END,
+           assigned_to = CASE WHEN $10::uuid IS NOT NULL THEN $10 ELSE assigned_to END,
+           pipeline_id = CASE WHEN $11::uuid IS NOT NULL THEN $11 ELSE pipeline_id END,
+           stage_id = CASE WHEN $12::uuid IS NOT NULL THEN $12 ELSE stage_id END,
+           client_id = CASE WHEN $13::uuid IS NOT NULL THEN $13 ELSE client_id END,
+           contact_name = $14,
+           contact_email = $15,
+           contact_phone = $16,
+           contact_position = $17,
+           company_name = $18,
+           object_address = $19,
+           updated_at = NOW()
+       WHERE id = $20
        RETURNING *`,
-      [title, description, value, currency, probability, expected_close_date,
-       source, tags, custom_fields ? JSON.stringify(custom_fields) : null, assigned_to, req.params.id]
+      [
+        title, 
+        description, 
+        value, 
+        currency, 
+        probability, 
+        expected_close_date,
+        source, 
+        tags, 
+        custom_fields ? JSON.stringify(custom_fields) : null, 
+        toNullIfEmpty(assigned_to),
+        toNullIfEmpty(pipeline_id), 
+        toNullIfEmpty(stage_id), 
+        toNullIfEmpty(client_id),
+        contact_name || null, 
+        contact_email || null, 
+        contact_phone || null, 
+        contact_position || null,
+        company_name || null,
+        object_address || null,
+        req.params.id
+      ]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
-
-    // Log activity
     await db.query(
       `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
        VALUES ('lead', $1, 'updated', 'Lead updated', $2)`,
       [req.params.id, req.user.id]
     );
+
+    await invalidateCache('/api/leads');
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -251,6 +314,8 @@ router.put('/:id/stage', authenticateToken, async (req, res) => {
       io.emit('lead_stage_changed', { lead_id: req.params.id, stage_id, stage_name: stage.name });
     }
 
+    await invalidateCache('/api/leads');
+
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -268,6 +333,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Lead not found' });
     }
+
+    await invalidateCache('/api/leads');
 
     res.json({ success: true, message: 'Lead deleted' });
   } catch (error) {

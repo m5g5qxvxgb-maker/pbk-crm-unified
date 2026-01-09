@@ -73,7 +73,7 @@ export default function KanbanBoard({ pipeline, leads, onLeadClick, onStageMove 
                 </span>
               </div>
               <p className={`text-sm font-medium ${getValueColor(totalValue)}`}>
-                ${totalValue.toLocaleString()}
+                {totalValue.toLocaleString()} zł
               </p>
             </div>
 
@@ -96,7 +96,7 @@ export default function KanbanBoard({ pipeline, leads, onLeadClick, onStageMove 
 
                   {lead.value && (
                     <p className={`text-sm font-medium mb-2 ${getValueColor(lead.value)}`}>
-                      💰 ${lead.value.toLocaleString()}
+                      💰 {lead.value.toLocaleString()} zł
                     </p>
                   )}
 
