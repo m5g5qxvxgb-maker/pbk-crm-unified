@@ -66,31 +66,32 @@ function SortableCard({ lead, onClick, isSelected, onSelectToggle }: any) {
           className="mt-1 w-4 h-4 cursor-pointer"
         />
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span 
-              className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 select-all"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Fallback для копирования (работает без HTTPS)
-                const textArea = document.createElement('textarea');
-                textArea.value = lead.id;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                  document.execCommand('copy');
-                  toast.success('ID скопирован');
-                } catch (err) {
-                  toast.error('Не удалось скопировать');
-                }
-                document.body.removeChild(textArea);
-              }}
-              title="Нажмите чтобы скопировать ID"
-            >
-              {lead.id.slice(0, 8)}
-            </span>
-          </div>
+          {lead.unique_id && (
+            <div className="flex items-center gap-2 mb-1">
+              <span 
+                className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded cursor-pointer hover:bg-blue-100 select-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const textArea = document.createElement('textarea');
+                  textArea.value = lead.unique_id;
+                  textArea.style.position = 'fixed';
+                  textArea.style.left = '-999999px';
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  try {
+                    document.execCommand('copy');
+                    toast.success('ID скопирован: ' + lead.unique_id);
+                  } catch (err) {
+                    toast.error('Не удалось скопировать');
+                  }
+                  document.body.removeChild(textArea);
+                }}
+                title="Нажмите чтобы скопировать ID"
+              >
+                {lead.unique_id}
+              </span>
+            </div>
+          )}
           <h3 
             className="font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600"
             onClick={(e) => {
