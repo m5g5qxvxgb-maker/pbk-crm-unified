@@ -1,25 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  functionCalled?: any;
+}
 
 export default function AICopilot({ onActionComplete }: { onActionComplete?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [command, setCommand] = useState('');
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const [interpretation, setInterpretation] = useState<any>(null);
-
-  const executeCommand = async (autoConfirm = false) => {
-    if (!command.trim()) {
-      toast.error('Введите команду');
-      return;
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'system',
+      content: 'Привет! Я AI ассистент PBK CRM. Могу помочь с управлением лидами, задачами, клиентами и аналитикой. Просто напишите что нужно сделать!',
+      timestamp: new Date()
     }
+  ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: input,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setLoading(true);
-    setResult(null);
 
     try {
       const token = localStorage.getItem('token');
@@ -30,45 +52,66 @@ export default function AICopilot({ onActionComplete }: { onActionComplete?: () 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          command,
-          context: { autoConfirm }
+          message: input,
+          context: { autoConfirm: false },
+          history: messages
+            .filter(m => m.role !== 'system')
+            .slice(-10)
+            .map(m => ({ role: m.role, content: m.content }))
         })
       });
 
       const data = await response.json();
+      console.log('[AICopilot] Response:', data);
 
       if (data.success) {
-        if (data.needsConfirmation && !autoConfirm) {
-          setNeedsConfirmation(true);
-          setInterpretation(data.interpretation);
-          toast('Подтвердите действие');
-        } else {
-          setResult(data);
-          setNeedsConfirmation(false);
-          toast.success('✅ Выполнено!');
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: data.message || 'Готово!',
+          timestamp: new Date(),
+          functionCalled: data.functionCalled
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        if (data.functionCalled?.success) {
           onActionComplete?.();
         }
       } else {
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: `❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
         toast.error(data.error || 'Ошибка выполнения');
       }
     } catch (error) {
       console.error('AI Copilot error:', error);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: '❌ Ошибка подключения к AI',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
       toast.error('Ошибка подключения к AI');
     } finally {
       setLoading(false);
     }
   };
 
-  const confirmAction = () => {
-    setNeedsConfirmation(false);
-    executeCommand(true);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   const examples = [
     'Создай лид "Ремонт квартиры" на 50000 рублей',
+    'Добавь телефон +48 123 456 789 к лиду "Ремонт квартиры"',
     'Создай задачу "Позвонить клиенту" на завтра',
-    'Создай клиента "ООО Строй-Сервис" с телефоном +79001234567',
-    'Покажи аналитику по моим лидам',
+    'Покажи все активные лиды',
   ];
 
   return (
@@ -80,149 +123,120 @@ export default function AICopilot({ onActionComplete }: { onActionComplete?: () 
           className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center z-50"
           title="AI Copilot"
         >
-          <span className="text-2xl">🤖</span>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
         </button>
       )}
 
-      {/* Modal Window */}
+      {/* Chat Window */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg p-6 border-b border-blue-100">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xl">
-                    🤖
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">AI Copilot</h3>
-                    <p className="text-sm text-gray-600">Управляйте CRM через команды на русском</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    setCommand('');
-                    setResult(null);
-                    setNeedsConfirmation(false);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold w-8 h-8 flex items-center justify-center"
-                >
-                  ×
-                </button>
+        <div className="fixed bottom-6 right-6 w-[400px] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                🤖
+              </div>
+              <div>
+                <h3 className="font-semibold">AI Copilot</h3>
+                <p className="text-xs text-white/80">Ваш AI ассистент</p>
               </div>
             </div>
-
-            <div className="p-6">
-
-      {/* Command Input */}
-      <div className="mb-4">
-        <textarea
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              executeCommand();
-            }
-          }}
-          placeholder="Например: Создай лид 'Строительство дома' на 500000 рублей с вероятностью 80%"
-          className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          rows={3}
-          disabled={loading}
-        />
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => executeCommand()}
-          disabled={loading || !command.trim()}
-          className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Обработка...
-            </span>
-          ) : (
-            '▶️ Выполнить'
-          )}
-        </button>
-        {command && (
-          <button
-            onClick={() => {
-              setCommand('');
-              setResult(null);
-              setNeedsConfirmation(false);
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Очистить
-          </button>
-        )}
-      </div>
-
-      {/* Confirmation */}
-      {needsConfirmation && interpretation && (
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="font-semibold text-yellow-900 mb-2">Подтвердите действие</h4>
-          <p className="text-sm text-yellow-800 mb-3">
-            Я понял: <strong>{interpretation.explanation}</strong>
-          </p>
-          <p className="text-sm text-gray-700 mb-3">
-            Действие: <span className="font-mono bg-yellow-100 px-2 py-1 rounded">{interpretation.action}</span>
-          </p>
-          <p className="text-sm text-gray-600 mb-3">
-            Уверенность: {Math.round((interpretation.confidence || 0) * 100)}%
-          </p>
-          <div className="flex gap-2">
             <button
-              onClick={confirmAction}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              onClick={() => setIsOpen(false)}
+              className="hover:bg-white/20 rounded-lg p-1 transition"
             >
-              ✅ Подтвердить
-            </button>
-            <button
-              onClick={() => setNeedsConfirmation(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Отмена
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Result */}
-      {result && !needsConfirmation && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-900 mb-2">✅ Выполнено!</h4>
-          <p className="text-sm text-green-800 mb-2">{result.explanation}</p>
-          {result.result?.data && (
-            <div className="mt-2 p-3 bg-white rounded border border-green-200">
-              <pre className="text-xs text-gray-700 overflow-auto max-h-40">
-                {JSON.stringify(result.result.data, null, 2)}
-              </pre>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((message, idx) => (
+              <div
+                key={idx}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      : message.role === 'system'
+                      ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                      : 'bg-white border border-gray-200 text-gray-800'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  
+                  {message.functionCalled && (
+                    <div className="mt-2 pt-2 border-t border-gray-300">
+                      <p className="text-xs opacity-75 mb-1">Выполнено действие:</p>
+                      <pre className="text-xs bg-black/10 rounded p-2 overflow-auto max-h-32">
+                        {JSON.stringify(message.functionCalled.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  
+                  <p className={`text-xs mt-1 opacity-70`}>
+                    {message.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Example Commands */}
+          {messages.length === 1 && (
+            <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+              <p className="text-xs text-gray-500 mb-2">Примеры команд:</p>
+              <div className="flex flex-wrap gap-2">
+                {examples.slice(0, 2).map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInput(cmd)}
+                    className="text-xs px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-full text-gray-700 transition"
+                  >
+                    {cmd.substring(0, 30)}...
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Examples */}
-      <div>
-        <p className="text-xs text-gray-500 mb-2">Примеры команд:</p>
-        <div className="grid grid-cols-1 gap-2">
-          {examples.map((example, index) => (
-            <button
-              key={index}
-              onClick={() => setCommand(example)}
-              className="text-left text-xs px-3 py-2 bg-white border border-gray-200 rounded hover:border-blue-300 hover:bg-blue-50 transition"
-            >
-              💡 {example}
-            </button>
-          ))}
-        </div>
-      </div>
+          {/* Input */}
+          <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
+            <div className="flex items-end gap-2">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Напишите команду или вопрос..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={2}
+                disabled={loading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <PaperAirplaneIcon className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>

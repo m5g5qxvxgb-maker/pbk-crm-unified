@@ -17,7 +17,7 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
     } = req.query;
     
     let query = `
-      SELECT l.id, l.unique_id, l.title, l.description, l.value, l.currency, l.probability,
+      SELECT l.id, l.title, l.description, l.value, l.currency, l.probability,
              l.expected_close_date, l.source, l.tags,
              l.pipeline_id, l.stage_id, l.client_id, l.assigned_to,
              l.contact_name, l.contact_email, l.contact_phone, l.contact_position,
@@ -51,7 +51,7 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (l.title ILIKE $${paramIndex} OR l.description ILIKE $${paramIndex} OR l.unique_id ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`;
+      query += ` AND (l.title ILIKE $${paramIndex} OR l.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -130,53 +130,55 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
 
-    const result = await db.query(
-      `INSERT INTO leads 
-       (pipeline_id, stage_id, client_id, title, description, value, currency,
-        probability, expected_close_date, source, tags, custom_fields, assigned_to, created_by,
-        contact_name, contact_email, contact_phone, contact_position, company_name, object_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-       RETURNING *`,
-      [
-        finalPipelineId, 
-        finalStageId, 
-        toNullIfEmpty(client_id), 
-        title, 
-        description || null, 
-        value || null, 
-        currency || 'PLN',
-        probability || 50, 
-        expected_close_date || null, 
-        source || null, 
-        tags || null, 
-        custom_fields ? JSON.stringify(custom_fields) : null, 
-        toNullIfEmpty(assigned_to), 
-        req.user.id,
-        contact_name || null, 
-        contact_email || null, 
-        contact_phone || null, 
-        contact_position || null,
-        company_name || null,
-        object_address || null
-      ]
-    );
+    const result = await db.withTransaction(async (client) => {
+      const leadResult = await client.query(
+        `INSERT INTO leads 
+         (pipeline_id, stage_id, client_id, title, description, value, currency,
+          probability, expected_close_date, source, tags, custom_fields, assigned_to, created_by,
+          contact_name, contact_email, contact_phone, contact_position, company_name, object_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+         RETURNING *`,
+        [
+          finalPipelineId, 
+          finalStageId, 
+          toNullIfEmpty(client_id), 
+          title, 
+          description || null, 
+          value || null, 
+          currency || 'PLN',
+          probability || 50, 
+          expected_close_date || null, 
+          source || null, 
+          tags || null, 
+          custom_fields ? JSON.stringify(custom_fields) : null, 
+          toNullIfEmpty(assigned_to), 
+          req.user.id,
+          contact_name || null, 
+          contact_email || null, 
+          contact_phone || null, 
+          contact_position || null,
+          company_name || null,
+          object_address || null
+        ]
+      );
 
-    // Log activity
-    await db.query(
-      `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
-       VALUES ('lead', $1, 'created', $2, $3)`,
-      [result.rows[0].id, `Lead created: ${title}`, req.user.id]
-    );
+      await client.query(
+        `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
+         VALUES ('lead', $1, 'created', $2, $3)`,
+        [leadResult.rows[0].id, `Lead created: ${title}`, req.user.id]
+      );
 
-    // Emit real-time event
+      return leadResult.rows[0];
+    });
+
     const io = req.app.get('io');
     if (io) {
-      io.emit('lead_created', result.rows[0]);
+      io.emit('lead_created', result);
     }
 
     await invalidateCache('/api/leads');
 
-    res.json({ success: true, data: result.rows[0] });
+    res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -198,67 +200,75 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
 
-    const result = await db.query(
-      `UPDATE leads 
-       SET title = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE title END,
-           description = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE description END,
-           value = CASE WHEN $3::numeric IS NOT NULL THEN $3 ELSE value END,
-           currency = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE currency END,
-           probability = CASE WHEN $5::integer IS NOT NULL THEN $5 ELSE probability END,
-           expected_close_date = CASE WHEN $6::timestamp IS NOT NULL THEN $6 ELSE expected_close_date END,
-           source = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE source END,
-           tags = CASE WHEN $8::text[] IS NOT NULL THEN $8 ELSE tags END,
-           custom_fields = CASE WHEN $9::jsonb IS NOT NULL THEN $9 ELSE custom_fields END,
-           assigned_to = CASE WHEN $10::uuid IS NOT NULL THEN $10 ELSE assigned_to END,
-           pipeline_id = CASE WHEN $11::uuid IS NOT NULL THEN $11 ELSE pipeline_id END,
-           stage_id = CASE WHEN $12::uuid IS NOT NULL THEN $12 ELSE stage_id END,
-           client_id = CASE WHEN $13::uuid IS NOT NULL THEN $13 ELSE client_id END,
-           contact_name = $14,
-           contact_email = $15,
-           contact_phone = $16,
-           contact_position = $17,
-           company_name = $18,
-           object_address = $19,
-           updated_at = NOW()
-       WHERE id = $20
-       RETURNING *`,
-      [
-        title, 
-        description, 
-        value, 
-        currency, 
-        probability, 
-        expected_close_date,
-        source, 
-        tags, 
-        custom_fields ? JSON.stringify(custom_fields) : null, 
-        toNullIfEmpty(assigned_to),
-        toNullIfEmpty(pipeline_id), 
-        toNullIfEmpty(stage_id), 
-        toNullIfEmpty(client_id),
-        contact_name || null, 
-        contact_email || null, 
-        contact_phone || null, 
-        contact_position || null,
-        company_name || null,
-        object_address || null,
-        req.params.id
-      ]
-    );
+    const result = await db.withTransaction(async (client) => {
+      const updateResult = await client.query(
+        `UPDATE leads 
+         SET title = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE title END,
+             description = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE description END,
+             value = CASE WHEN $3::numeric IS NOT NULL THEN $3 ELSE value END,
+             currency = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE currency END,
+             probability = CASE WHEN $5::integer IS NOT NULL THEN $5 ELSE probability END,
+             expected_close_date = CASE WHEN $6::timestamp IS NOT NULL THEN $6 ELSE expected_close_date END,
+             source = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE source END,
+             tags = CASE WHEN $8::text[] IS NOT NULL THEN $8 ELSE tags END,
+             custom_fields = CASE WHEN $9::jsonb IS NOT NULL THEN $9 ELSE custom_fields END,
+             assigned_to = CASE WHEN $10::uuid IS NOT NULL THEN $10 ELSE assigned_to END,
+             pipeline_id = CASE WHEN $11::uuid IS NOT NULL THEN $11 ELSE pipeline_id END,
+             stage_id = CASE WHEN $12::uuid IS NOT NULL THEN $12 ELSE stage_id END,
+             client_id = CASE WHEN $13::uuid IS NOT NULL THEN $13 ELSE client_id END,
+             contact_name = $14,
+             contact_email = $15,
+             contact_phone = $16,
+             contact_position = $17,
+             company_name = $18,
+             object_address = $19,
+             updated_at = NOW()
+         WHERE id = $20
+         RETURNING *`,
+        [
+          title, 
+          description, 
+          value, 
+          currency, 
+          probability, 
+          expected_close_date,
+          source, 
+          tags, 
+          custom_fields ? JSON.stringify(custom_fields) : null, 
+          toNullIfEmpty(assigned_to),
+          toNullIfEmpty(pipeline_id), 
+          toNullIfEmpty(stage_id), 
+          toNullIfEmpty(client_id),
+          contact_name || null, 
+          contact_email || null, 
+          contact_phone || null, 
+          contact_position || null,
+          company_name || null,
+          object_address || null,
+          req.params.id
+        ]
+      );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Lead not found' });
-    }
-    await db.query(
-      `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
-       VALUES ('lead', $1, 'updated', 'Lead updated', $2)`,
-      [req.params.id, req.user.id]
-    );
+      if (updateResult.rows.length === 0) {
+        throw new Error('Lead not found');
+      }
+
+      await client.query(
+        `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
+         VALUES ('lead', $1, 'updated', 'Lead updated', $2)`,
+        [req.params.id, req.user.id]
+      );
+
+      return updateResult.rows[0];
+    });
 
     await invalidateCache('/api/leads');
 
-    res.json({ success: true, data: result.rows[0] });
+    res.json({ success: true, data: result });
   } catch (error) {
+    if (error.message === 'Lead not found') {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -275,7 +285,6 @@ router.put('/:id/stage', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Stage ID is required' });
     }
 
-    // Get stage name for activity log
     const stageResult = await db.query(
       'SELECT name, is_final FROM pipeline_stages WHERE id = $1',
       [stage_id]
@@ -287,28 +296,29 @@ router.put('/:id/stage', authenticateToken, async (req, res) => {
 
     const stage = stageResult.rows[0];
 
-    // Update lead
-    const result = await db.query(
-      `UPDATE leads 
-       SET stage_id = $1, 
-           closed_at = CASE WHEN $2 THEN NOW() ELSE closed_at END
-       WHERE id = $3
-       RETURNING *`,
-      [stage_id, stage.is_final, req.params.id]
-    );
+    const result = await db.withTransaction(async (client) => {
+      const updateResult = await client.query(
+        `UPDATE leads 
+         SET stage_id = $1, 
+             closed_at = CASE WHEN $2 THEN NOW() ELSE closed_at END
+         WHERE id = $3
+         RETURNING *`,
+        [stage_id, stage.is_final, req.params.id]
+      );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Lead not found' });
-    }
+      if (updateResult.rows.length === 0) {
+        throw new Error('Lead not found');
+      }
 
-    // Log activity
-    await db.query(
-      `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
-       VALUES ('lead', $1, 'stage_changed', $2, $3)`,
-      [req.params.id, `Moved to stage: ${stage.name}`, req.user.id]
-    );
+      await client.query(
+        `INSERT INTO activities (entity_type, entity_id, activity_type, description, user_id)
+         VALUES ('lead', $1, 'stage_changed', $2, $3)`,
+        [req.params.id, `Moved to stage: ${stage.name}`, req.user.id]
+      );
 
-    // Emit real-time event
+      return updateResult.rows[0];
+    });
+
     const io = req.app.get('io');
     if (io) {
       io.emit('lead_stage_changed', { lead_id: req.params.id, stage_id, stage_name: stage.name });
@@ -316,8 +326,11 @@ router.put('/:id/stage', authenticateToken, async (req, res) => {
 
     await invalidateCache('/api/leads');
 
-    res.json({ success: true, data: result.rows[0] });
+    res.json({ success: true, data: result });
   } catch (error) {
+    if (error.message === 'Lead not found') {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });

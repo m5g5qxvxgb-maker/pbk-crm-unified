@@ -13,14 +13,14 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
   try {
     const { page = 1, limit = 50, search, assigned_to } = req.query;
     
-    let query = `SELECT id, unique_id, company_name, contact_person, email, phone, 
+    let query = `SELECT id, company_name, contact_person, email, phone, 
                         website, city, country, tags, assigned_to, created_at
                  FROM clients WHERE 1=1`;
     const params = [];
     let paramIndex = 1;
 
     if (search) {
-      query += ` AND (company_name ILIKE $${paramIndex} OR contact_person ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR unique_id ILIKE $${paramIndex})`;
+      query += ` AND (company_name ILIKE $${paramIndex} OR contact_person ILIKE $${paramIndex} OR email ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
