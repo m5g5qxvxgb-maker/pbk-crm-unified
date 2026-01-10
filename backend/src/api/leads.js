@@ -17,7 +17,7 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
     } = req.query;
     
     let query = `
-      SELECT l.id, l.title, l.description, l.value, l.currency, l.probability,
+      SELECT l.id, l.unique_id, l.title, l.description, l.value, l.currency, l.probability,
              l.expected_close_date, l.source, l.tags,
              l.pipeline_id, l.stage_id, l.client_id, l.assigned_to,
              l.contact_name, l.contact_email, l.contact_phone, l.contact_position,
@@ -51,7 +51,7 @@ router.get('/', authenticateToken, cacheMiddleware(180), async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (l.title ILIKE $${paramIndex} OR l.description ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`;
+      query += ` AND (l.title ILIKE $${paramIndex} OR l.description ILIKE $${paramIndex} OR l.unique_id ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }

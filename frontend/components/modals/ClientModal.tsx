@@ -174,6 +174,10 @@ export default function ClientModal({ clientId, isOpen, onClose, onSave }: Clien
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
+              <p className="text-sm text-gray-500">ID клиента</p>
+              <p className="text-sm font-mono text-blue-600">{client.unique_id || client.id}</p>
+            </div>
+            <div>
               <p className="text-sm text-gray-500">Имя клиента</p>
               <p className="text-lg text-gray-900">{client.company_name || '-'}</p>
             </div>

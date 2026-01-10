@@ -152,9 +152,7 @@ export default function LeadModal({ leadId, isOpen, onClose, onUpdate }: LeadMod
         setLead(leadRes.data);
         setFormData(leadRes.data);
         setIsEditing(false);
-        loadRelatedData(leadId);
         
-        // Auto-fill contact phone for calls
         setCallFormData(prev => ({
           ...prev,
           phone_number: leadRes.data.contact_phone || ''
@@ -165,10 +163,13 @@ export default function LeadModal({ leadId, isOpen, onClose, onUpdate }: LeadMod
       if (pipelinesRes.success) {
         setPipelines(pipelinesRes.data);
         
-        // Load stages for current pipeline
         if (leadRes.data?.pipeline_id) {
           await loadStagesForPipeline(leadRes.data.pipeline_id, token);
         }
+      }
+      
+      if (leadRes.success && leadRes.data) {
+        loadRelatedData(leadId);
       }
     } catch (error) {
       toast.error('Ошибка загрузки лида');
@@ -664,6 +665,10 @@ export default function LeadModal({ leadId, isOpen, onClose, onUpdate }: LeadMod
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
+              <p className="text-sm text-gray-500">ID лида</p>
+              <p className="text-sm font-mono text-blue-600">{lead.unique_id || lead.id}</p>
+            </div>
+            <div>
               <p className="text-sm text-gray-500">Название</p>
               <p className="text-lg font-semibold text-gray-900">{lead.title}</p>
             </div>
@@ -846,14 +851,21 @@ export default function LeadModal({ leadId, isOpen, onClose, onUpdate }: LeadMod
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Этап</label>
             <select
-              value={formData.stage_id}
+              value={formData.stage_id || ''}
               onChange={(e) => setFormData({ ...formData, stage_id: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={stages.length === 0}
             >
+              {stages.length === 0 && (
+                <option value="">Загрузка стадий...</option>
+              )}
               {stages.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
+            {stages.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Выберите пайплайн для загрузки стадий</p>
+            )}
           </div>
         </div>
 
