@@ -233,6 +233,31 @@ export default function LeadsPage() {
                     onClick={() => handleOpenLead(lead.id)}
                   >
                     <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span 
+                          className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 select-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Fallback для копирования (работает без HTTPS)
+                            const textArea = document.createElement('textarea');
+                            textArea.value = lead.id;
+                            textArea.style.position = 'fixed';
+                            textArea.style.left = '-999999px';
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            try {
+                              document.execCommand('copy');
+                              toast.success('ID скопирован');
+                            } catch (err) {
+                              toast.error('Не удалось скопировать');
+                            }
+                            document.body.removeChild(textArea);
+                          }}
+                          title="Нажмите чтобы скопировать ID"
+                        >
+                          {lead.id.slice(0, 8)}
+                        </span>
+                      </div>
                       <h3 className="font-semibold text-gray-900 truncate">
                         {lead.title}
                       </h3>
