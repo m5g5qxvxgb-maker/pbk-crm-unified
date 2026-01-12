@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import AICopilotChat from '@/components/ai/AICopilotChat';
+import AICopilot from '@/components/ai/AICopilot';
 import StatsCard from '../../src/components/dashboard/StatsCard';
 import Card from '../../src/components/ui/Card';
 import ActivityTimeline from '../../src/components/timeline/ActivityTimeline';
@@ -109,7 +109,7 @@ export default function DashboardPage() {
       </div>
 
       {/* AI Copilot Chat - Fixed on right side */}
-      <AICopilotChat onActionComplete={() => {
+      <AICopilot onActionComplete={() => {
         // Reload metrics and activities instead of full page reload
         fetch(getApiUrl('/api/dashboard/metrics'), {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
